@@ -1,0 +1,107 @@
+/* Footer links hover effect */
+#elFooterLinks li a:hover {
+  color: #ffa60d !important;
+}
+
+.copyright:hover {
+  color: #ffa60d !important;
+}
+
+/* All links hover - Blue instead of green */
+a:hover,
+a:focus,
+.seo_feature_content a:hover,
+.seo_feature_content p a:hover,
+.ipsType_normal a:hover,
+.ipsContained a:hover,
+.ipsType_richText a:hover,
+.ipsType_medium a:hover,
+article a:hover,
+p a:hover {
+  color: #ffa60d !important;
+}
+
+/* Quantity manager glow effect - blue */
+.quantity_manager {
+  border-color: #35383d !important;
+
+}
+
+.quantity_manager:hover, .quantity_manager:focus {
+  border-color: #ffa60d !important;
+  box-shadow: 0 0 15px rgba(255, 166, 13, 0.5) !important;
+}
+
+/* Blue form fields instead of green */
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
+  border-color: #ffa60d !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.25) !important;
+}
+
+/* Blue checkbox instead of green */
+input[type="checkbox"]:focus {
+  border-color: #ffa60d !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(255, 166, 13, 0.6) !important;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #ffa60d !important;
+  border-color: #ffa60d !important;
+}
+
+/* Custom checkbox styling for Remember me */
+.ipsCustomInput input[type="checkbox"]:focus + span,
+#remember_me_checkbox:focus + span {
+  border-color: #ffa60d !important;
+  box-shadow: 0 0 0 3px rgba(255, 166, 13, 0.6) !important;
+}
+
+.ipsCustomInput input[type="checkbox"]:checked + span,
+#remember_me_checkbox:checked + span {
+  background-color: #ffa60d !important;
+  border-color: #ffa60d !important;
+}
+
+.ipsCustomInput input[type="checkbox"]:checked + span:before,
+#remember_me_checkbox:checked + span:before {
+  border-color: #fff !important;
+}
+
+/* Hero banner background */
+.theme-header__hero{
+  background-image:url('../images/84c1e40ea0e759e3f1505eb1788ddf3c_hero.webp');
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:cover;
+}
+
+/* Product feature arrow/icon color overrides */
+.ccNexusPackage li > i[class*="fa-"],
+.seo_features li > i[class*="fa-"],
+.seo_columns li > i[class*="fa-"],
+.requirements_section ul li i,
+.corefeatures_section ul li i,
+.box ul li i {
+  color: #ffa60d !important;
+}
+
+.ipsNavBar_primary > ul > li > a:hover,
+.ipsNavBar_primary > ul > li > a:focus,
+.ipsNavBar_primary > ul > li > a:active {
+  color: #fff !important;
+}
+
+.onlineIcon {
+  background-image: linear-gradient(to right, #9dff88, #9dff88, #9dff88) !important;
+  color: #9dff88 !important;
+}
+
+.cOnlineUsers_co > span:first-child {
+  color: #9dff88 !important;
+}

@@ -1,0 +1,76 @@
+{
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/:path*.html",
+      "destination": "/:path*",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/valorant",
+      "destination": "/valorant.html"
+    },
+    {
+      "source": "/rust",
+      "destination": "/rust.html"
+    },
+    {
+      "source": "/fortnite",
+      "destination": "/fortnite.html"
+    },
+    {
+      "source": "/battlefield-6",
+      "destination": "/battlefield-6.html"
+    },
+    {
+      "source": "/bo6-warzone-external",
+      "destination": "/bo6-warzone-external.html"
+    },
+    {
+      "source": "/delta-force",
+      "destination": "/delta-force.html"
+    },
+    {
+      "source": "/hwid-unban",
+      "destination": "/hwid-unban.html"
+    },
+    {
+      "source": "/forum",
+      "destination": "/forum.html"
+    },
+    {
+      "source": "/guides",
+      "destination": "/guides.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/lost-password",
+      "destination": "/lost-password.html"
+    },
+    {
+      "source": "/register",
+      "destination": "/register.html"
+    },
+    {
+      "source": "/reviews",
+      "destination": "/reviews.html"
+    },
+    {
+      "source": "/status",
+      "destination": "/status.html"
+    },
+    {
+      "source": "/support",
+      "destination": "/support.html"
+    },
+    {
+      "source": "/products-topics/:path",
+      "destination": "/products-topics/:path.html"
+    }
+  ]
+}

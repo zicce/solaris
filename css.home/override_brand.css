@@ -1,0 +1,74 @@
+
+:root {
+  --theme-brand_primary: 255, 166, 13;
+  --theme-brand_secondary: 255, 166, 13;
+  --theme-brand_gradient: linear-gradient(60deg, rgb(255, 166, 13), rgba(255, 166, 13, 0.9));
+  --theme-brand_gradient_webkit: linear-gradient(60deg, rgb(255, 166, 13), rgba(255, 166, 13, 0.9));
+}
+
+ 
+
+.cNexusProduct__prices .cNexusPrice {
+  background: rgba(255, 166, 13, 0.2) !important;
+  color: #ffa60d !important;
+}
+
+.image-title { border-bottom-color: #ffa60d !important; }
+
+.box ul li i,
+.requirements_section ul li i,
+.corefeatures_section ul li i {
+  color: #ffa60d !important;
+}
+
+.backlink_pages_whychooseus,
+.astrion_backlink_ntc_section {
+  border-left-color: #ffa60d !important;
+  border-right-color: #ffa60d !important;
+}
+
+.cNexusProduct:hover {
+  border-color: rgba(255, 166, 13, 0.7) !important;
+  box-shadow: 0 0 0 4px rgba(255, 166, 13, 0.10) !important;
+}
+
+.cStorePackage_button:hover,
+.elCluster_button.active,
+.cStorePackage_button,
+.status-tabButton.is-active,
+.status-tabButton:hover:not(.is-active),
+.groups-tabButton.is-active,
+.groups-tabButton:hover:not(.is-active) {
+  background-image: var(--theme-brand_gradient) !important;
+}
+
+
+#elFooterLinks li a:hover {
+  color: #ffa60d !important;
+}
+
+.copyright:hover {
+  color: #ffa60d !important;
+}
+
+
+.theme-header__hero{
+  background-image:url('../images.home/84c1e40ea0e759e3f1505eb1788ddf3c_hero.webp');
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:cover;
+}
+
+
+::-webkit-scrollbar-thumb { background: var(--theme-brand_gradient) !important; }
+
+.onlineIcon {
+	background-image: linear-gradient(to right, #9dff88, #9dff88, #9dff88) !important;
+	color: #9dff88 !important;
+}
+
+.cOnlineUsers_co > span:first-child {
+  color: #9dff88 !important;
+}
+
+
