@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Status Dashboard - Solaris</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #141414 50%, #8B4513 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #1e1e1e;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #0a0a0a 0%, #141414 50%, #8B4513 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 2px solid #FF8C00;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.connected {
+            background: #22e41d;
+            box-shadow: 0 0 10px rgba(34, 228, 29, 0.5);
+        }
+        
+        .status-indicator.disconnected {
+            background: #ff0000;
+        }
+        
+        .content {
+            padding: 30px;
+            background: #1e1e1e;
+        }
+        
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .product-card {
+            background: #2a2a2a;
+            border: 2px solid #3a3a3a;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .product-card:hover {
+            border-color: #FF8C00;
+            box-shadow: 0 4px 12px rgba(255, 140, 0, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .product-card.saving {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .product-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .product-id {
+            font-size: 12px;
+            color: #888;
+            font-weight: normal;
+            font-family: monospace;
+        }
+        
+        .status-section {
+            margin-bottom: 15px;
+        }
+        
+        .status-label {
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .current-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+        
+        .status-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #444;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #1a1a1a;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .status-select:focus {
+            outline: none;
+            border-color: #FF8C00;
+            box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.2);
+        }
+        
+        .status-select option {
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        .save-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(255, 140, 0, 0.01) 0%, rgba(255, 140, 0, 0.2) 100%);
+            color: rgba(255, 140, 0, 0.9);
+            border: 1px solid rgba(255, 140, 0, 0.2);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .save-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
+            background: linear-gradient(135deg, rgba(255, 140, 0, 0.4) 0%, rgba(255, 140, 0, 0.5) 100%);
+            color: rgba(255, 140, 0, 1);
+        }
+        
+        .save-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .save-btn.saving {
+            background: #6c757d;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background: #22e41d;
+        }
+        
+        .notification.error {
+            background: #ff0000;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #aaa;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #333;
+            border-top: 3px solid #FF8C00;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .connection-status {
+            text-align: center;
+            padding: 15px;
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #fff;
+        }
+        
+        .dev-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #3a3a3a;
+        }
+        
+        .dev-section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .dev-section-title i {
+            color: rgba(255, 140, 0, 0.9);
+        }
+        
+        .dev-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .dev-code-box {
+            background: #1e1e1e;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            padding: 0;
+            overflow: hidden;
+            max-height: 400px;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .dev-code-box pre {
+            margin: 0;
+            padding: 20px;
+            background: transparent;
+            font-family: 'Courier New', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        
+        .dev-code-box code {
+            font-family: 'Courier New', 'Consolas', monospace;
+        }
+        
+        .code-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+        
+        .code-btn {
+            padding: 6px 12px;
+            background: rgba(42, 42, 42, 0.9);
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .code-btn:hover {
+            background: rgba(58, 58, 58, 0.9);
+            border-color: rgba(255, 140, 0, 0.5);
+            color: rgba(255, 140, 0, 0.9);
+        }
+        
+        .code-btn i {
+            font-size: 11px;
+        }
+        
+        .sensitive-data {
+            filter: blur(5px);
+            user-select: none;
+            transition: filter 0.3s;
+            display: inline-block;
+            cursor: pointer;
+        }
+        
+        .sensitive-data.revealed {
+            filter: blur(0) !important;
+        }
+        
+        /* Ensure blur works on Prism highlighted code */
+        code .sensitive-data,
+        pre .sensitive-data,
+        .token.string .sensitive-data,
+        span.sensitive-data {
+            filter: blur(5px) !important;
+            transition: filter 0.3s;
+        }
+        
+        code .sensitive-data.revealed,
+        pre .sensitive-data.revealed,
+        .token.string .sensitive-data.revealed,
+        span.sensitive-data.revealed {
+            filter: blur(0) !important;
+        }
+        
+        /* Apply blur to specific values after Prism processing */
+        code .token.string:has-text("AIzaSy"),
+        code .token.string:has-text("solaris-database-b5384"),
+        code .token.string:has-text("229880902004"),
+        code .token.string:has-text("G-27L86KFYG6") {
+            filter: blur(5px);
+        }
+        
+        .dev-database-info {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .dev-database-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .dev-database-title i {
+            color: #ffffff;
+        }
+        
+        .dev-database-structure {
+            color: #fff;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        
+        .dev-database-item {
+            margin-bottom: 12px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .dev-database-item::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: rgba(255, 140, 0, 0.7);
+        }
+        
+        .dev-database-label {
+            color: rgba(255, 140, 0, 0.9);
+            font-weight: 600;
+        }
+        
+        .dev-database-value {
+            color: #aaa;
+            font-family: 'Courier New', monospace;
+            margin-left: 8px;
+        }
+        
+        .dev-database-type {
+            color: #4a9eff;
+            font-family: 'Courier New', monospace;
+            margin-left: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .dev-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-cog"></i> Product Status Dashboard</h1>
+            <p>Manage product statuses remotely</p>
+        </div>
+        
+        <div class="content">
+            <div class="connection-status">
+                <span class="status-indicator disconnected" id="connectionIndicator"></span>
+                <span id="connectionText">Connecting to Firebase...</span>
+            </div>
+            
+            <div id="productsContainer" class="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading products...</p>
+            </div>
+            
+            <!-- Developer Section -->
+            <div class="dev-section">
+                <div class="dev-section-title">
+                    <i class="fas fa-code"></i>
+                    Developer Information
+                </div>
+                
+                <div class="dev-content">
+                    <!-- Firebase Config Code -->
+                    <div class="dev-code-box">
+                        <div class="code-actions">
+                            <button class="code-btn" id="revealBtn" onclick="toggleReveal()">
+                                <i class="fas fa-eye"></i> Reveal
+                            </button>
+                            <button class="code-btn" id="copyBtn" onclick="copyCode()">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        <pre><code class="language-javascript" id="firebaseConfigCode">// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: <span class="sensitive-data blurred">"AIzaSyDolzQZPSdzWQiYbqjhlyNkjE9LrYxkb7E"</span>,
+  authDomain: <span class="sensitive-data blurred">"solaris-database-b5384.firebaseapp.com"</span>,
+  projectId: <span class="sensitive-data blurred">"solaris-database-b5384"</span>,
+  storageBucket: <span class="sensitive-data blurred">"solaris-database-b5384.firebasestorage.app"</span>,
+  messagingSenderId: <span class="sensitive-data blurred">"229880902004"</span>,
+  appId: <span class="sensitive-data blurred">"1:229880902004:web:34be022f36ac4157433c21"</span>,
+  measurementId: <span class="sensitive-data blurred">"G-27L86KFYG6"</span>
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+// Initialize Firebase
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);</code></pre>
+                    </div>
+                    
+                    <!-- Database Structure -->
+                    <div class="dev-database-info">
+                        <div class="dev-database-title">
+                            <i class="fas fa-database"></i>
+                            Database Structure
+                        </div>
+                        <div class="dev-database-structure">
+                            <div class="dev-database-item">
+                                <span class="dev-database-label">Collection:</span>
+                                <span class="dev-database-value">productStatuses</span>
+                            </div>
+                            <div class="dev-database-item">
+                                <span class="dev-database-label">Document IDs:</span>
+                                <span class="dev-database-value">permanent-spoofer</span>
+                            </div>
+                            <div class="dev-database-item">
+                                <span class="dev-database-value">temporary-spoofer</span>
+                            </div>
+                            <div class="dev-database-item">
+                                <span class="dev-database-value">rust</span>
+                            </div>
+                            <div class="dev-database-item">
+                                <span class="dev-database-value">black-ops-6</span>
+                            </div>
+                            <div class="dev-database-item">
+                                <span class="dev-database-value">fortnite-private</span>
+                            </div>
+                            <div class="dev-database-item">
+                                <span class="dev-database-value">fortnite-internal</span>
+                            </div>
+                            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #3a3a3a;">
+                                <div class="dev-database-item">
+                                    <span class="dev-database-label">Field:</span>
+                                    <span class="dev-database-value">status</span>
+                                    <span class="dev-database-type">(string)</span>
+                                </div>
+                                <div class="dev-database-item">
+                                    <span class="dev-database-label">Field:</span>
+                                    <span class="dev-database-value">lastUpdated</span>
+                                    <span class="dev-database-type">(timestamp)</span>
+                                </div>
+                                <div class="dev-database-item">
+                                    <span class="dev-database-label">Field:</span>
+                                    <span class="dev-database-value">notes</span>
+                                    <span class="dev-database-type">(string)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="notification" class="notification"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDolzQZPSdzWQiYbqjhlyNkjE9LrYxkb7E",
+            authDomain: "solaris-database-b5384.firebaseapp.com",
+            projectId: "solaris-database-b5384",
+            storageBucket: "solaris-database-b5384.firebasestorage.app",
+            messagingSenderId: "229880902004",
+            appId: "1:229880902004:web:34be022f36ac4157433c21",
+            measurementId: "G-27L86KFYG6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const STATUS_OPTIONS = [
+            { value: "UNKNOWN", label: "UNKNOWN", color: "#808080", bg: "rgba(128,128,128,0.20)", icon: "fa-question-circle" },
+            { value: "Undetected (Working)", label: "Undetected (Working)", color: "#22e41d", bg: "rgba(34,228,29,0.20)", icon: "fa-shield-alt" },
+            { value: "Updating (Not Working)", label: "Updating (Not Working)", color: "#007bff", bg: "rgba(0,123,255,0.20)", icon: "fa-wrench" },
+            { value: "Detected (Not Working)", label: "Detected (Not Working)", color: "#ff0000", bg: "rgba(255,0,0,0.20)", icon: "fa-exclamation-triangle" },
+            { value: "Maintenance", label: "Maintenance", color: "#ffa500", bg: "rgba(255,165,0,0.20)", icon: "fa-tools" }
+        ];
+
+        const PRODUCTS = [
+            { id: "permanent-spoofer", name: "Permanent Spoofer" },
+            { id: "temporary-spoofer", name: "Temporary Spoofer" },
+            { id: "rust", name: "Rust" },
+            { id: "black-ops-6", name: "Black Ops 6" },
+            { id: "fortnite-private", name: "Fortnite Private" },
+            { id: "fortnite-internal", name: "Fortnite Internal" }
+        ];
+
+        let currentStatuses = {};
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('connectionIndicator');
+            const text = document.getElementById('connectionText');
+            
+            if (connected) {
+                indicator.className = 'status-indicator connected';
+                text.textContent = 'Connected to Firebase';
+            } else {
+                indicator.className = 'status-indicator disconnected';
+                text.textContent = 'Disconnected from Firebase';
+            }
+        }
+
+        function getStatusConfig(statusValue) {
+            return STATUS_OPTIONS.find(s => s.value === statusValue) || STATUS_OPTIONS[0];
+        }
+
+        function renderProductCard(product, currentStatus) {
+            const statusConfig = getStatusConfig(currentStatus || 'UNKNOWN');
+            
+            return `
+                <div class="product-card" data-product-id="${product.id}">
+                    <div class="product-name">
+                        ${product.name}
+                        <span class="product-id">${product.id}</span>
+                    </div>
+                    
+                    <div class="status-section">
+                        <div class="status-label">Current Status</div>
+                        <div class="current-status" style="background: ${statusConfig.bg}; color: ${statusConfig.color};">
+                            <i class="fas ${statusConfig.icon}"></i> ${currentStatus || 'UNKNOWN'}
+                        </div>
+                    </div>
+                    
+                    <div class="status-section">
+                        <div class="status-label">Change Status</div>
+                        <select class="status-select" data-product-id="${product.id}">
+                            ${STATUS_OPTIONS.map(option => 
+                                `<option value="${option.value}" ${(currentStatus || 'UNKNOWN') === option.value ? 'selected' : ''}>
+                                    ${option.label}
+                                </option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    
+                    <button class="save-btn" onclick="saveStatus('${product.id}')" data-product-id="${product.id}">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderProducts() {
+            const container = document.getElementById('productsContainer');
+            
+            if (Object.keys(currentStatuses).length === 0) {
+                container.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Ładowanie produktów...</p></div>';
+                return;
+            }
+            
+            container.className = 'products-grid';
+            container.innerHTML = PRODUCTS.map(product => {
+                const status = currentStatuses[product.id]?.status || 'UNKNOWN';
+                return renderProductCard(product, status);
+            }).join('');
+        }
+
+        window.saveStatus = async function(productId) {
+            const card = document.querySelector(`.product-card[data-product-id="${productId}"]`);
+            const select = card.querySelector('.status-select');
+            const button = card.querySelector('.save-btn');
+            const newStatus = select.value;
+            
+            if (newStatus === (currentStatuses[productId]?.status || 'UNKNOWN')) {
+                showNotification('Status has not been changed', 'error');
+                return;
+            }
+            
+            card.classList.add('saving');
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            try {
+                const statusRef = doc(db, "productStatuses", productId);
+                await setDoc(statusRef, {
+                    status: newStatus,
+                    lastUpdated: new Date().toISOString(),
+                    notes: currentStatuses[productId]?.notes || ""
+                }, { merge: true });
+                
+                showNotification(`Status for "${PRODUCTS.find(p => p.id === productId)?.name}" updated!`, 'success');
+                
+                // Update local state
+                if (!currentStatuses[productId]) {
+                    currentStatuses[productId] = {};
+                }
+                currentStatuses[productId].status = newStatus;
+                
+                // Update UI
+                const statusConfig = getStatusConfig(newStatus);
+                const currentStatusDiv = card.querySelector('.current-status');
+                currentStatusDiv.innerHTML = `<i class="fas ${statusConfig.icon}"></i> ${newStatus}`;
+                currentStatusDiv.style.background = statusConfig.bg;
+                currentStatusDiv.style.color = statusConfig.color;
+                
+            } catch (error) {
+                console.error('Error saving status:', error);
+                showNotification('Error saving: ' + error.message, 'error');
+            } finally {
+                card.classList.remove('saving');
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+            }
+        };
+
+        async function initializeDashboard() {
+            try {
+                updateConnectionStatus(false);
+                
+                // Load initial statuses
+                const statusesRef = collection(db, "productStatuses");
+                const snapshot = await getDocs(statusesRef);
+                
+                snapshot.forEach((doc) => {
+                    currentStatuses[doc.id] = doc.data();
+                });
+                
+                renderProducts();
+                updateConnectionStatus(true);
+                
+                // Set up real-time listener
+                onSnapshot(statusesRef, (snapshot) => {
+                    const updatedStatuses = {};
+                    snapshot.forEach((doc) => {
+                        updatedStatuses[doc.id] = doc.data();
+                    });
+                    
+                    // Check if any status changed
+                    let hasChanges = false;
+                    Object.keys(updatedStatuses).forEach(id => {
+                        if (currentStatuses[id]?.status !== updatedStatuses[id]?.status) {
+                            hasChanges = true;
+                        }
+                    });
+                    
+                    currentStatuses = updatedStatuses;
+                    
+                    if (hasChanges) {
+                        renderProducts();
+                        showNotification('Statuses updated from Firebase', 'success');
+                    }
+                    
+                    updateConnectionStatus(true);
+                }, (error) => {
+                    console.error('Error in snapshot:', error);
+                    updateConnectionStatus(false);
+                });
+                
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                updateConnectionStatus(false);
+                document.getElementById('productsContainer').innerHTML = 
+                    '<div class="loading"><p style="color: #ff0000;">Error connecting to Firebase. Check security rules.</p></div>';
+            }
+        }
+
+        // Initialize on load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeDashboard);
+        } else {
+            initializeDashboard();
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script>
+        // Highlight code on load and apply blur
+        function highlightAndBlur() {
+            if (window.Prism) {
+                Prism.highlightAll();
+                
+                // Re-apply blur after Prism processes the code
+                setTimeout(() => {
+                    const codeElement = document.getElementById('firebaseConfigCode');
+                    if (codeElement) {
+                        // Find and wrap sensitive values in blurred spans
+                        const sensitiveValues = [
+                            'AIzaSyDolzQZPSdzWQiYbqjhlyNkjE9LrYxkb7E',
+                            'solaris-database-b5384.firebaseapp.com',
+                            'solaris-database-b5384',
+                            'solaris-database-b5384.firebasestorage.app',
+                            '229880902004',
+                            '1:229880902004:web:34be022f36ac4157433c21',
+                            'G-27L86KFYG6'
+                        ];
+                        
+                        let html = codeElement.innerHTML;
+                        sensitiveValues.forEach(value => {
+                            // Escape special regex characters
+                            const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                            // Replace the value with wrapped version
+                            const regex = new RegExp(`("${escapedValue}")`, 'g');
+                            html = html.replace(regex, '<span class="sensitive-data blurred">$1</span>');
+                        });
+                        codeElement.innerHTML = html;
+                    }
+                }, 200);
+            }
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', highlightAndBlur);
+        } else {
+            highlightAndBlur();
+        }
+        
+        // Reveal/Hide sensitive data
+        let isRevealed = false;
+        window.toggleReveal = function() {
+            isRevealed = !isRevealed;
+            const sensitiveElements = document.querySelectorAll('.sensitive-data');
+            const revealBtn = document.getElementById('revealBtn');
+            
+            sensitiveElements.forEach(el => {
+                if (isRevealed) {
+                    el.classList.add('revealed');
+                    el.classList.remove('blurred');
+                } else {
+                    el.classList.remove('revealed');
+                    el.classList.add('blurred');
+                }
+            });
+            
+            if (revealBtn) {
+                revealBtn.innerHTML = isRevealed 
+                    ? '<i class="fas fa-eye-slash"></i> Hide'
+                    : '<i class="fas fa-eye"></i> Reveal';
+            }
+        };
+        
+        // Copy code to clipboard
+        window.copyCode = async function() {
+            const codeText = `// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDolzQZPSdzWQiYbqjhlyNkjE9LrYxkb7E",
+  authDomain: "solaris-database-b5384.firebaseapp.com",
+  projectId: "solaris-database-b5384",
+  storageBucket: "solaris-database-b5384.firebasestorage.app",
+  messagingSenderId: "229880902004",
+  appId: "1:229880902004:web:34be022f36ac4157433c21",
+  measurementId: "G-27L86KFYG6"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);`;
+            
+            try {
+                await navigator.clipboard.writeText(codeText);
+                const copyBtn = document.getElementById('copyBtn');
+                if (copyBtn) {
+                    const originalText = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    copyBtn.style.color = 'rgba(34, 228, 29, 0.9)';
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalText;
+                        copyBtn.style.color = '';
+                    }, 2000);
+                }
+                if (window.showNotification) {
+                    showNotification('Code copied to clipboard!', 'success');
+                }
+            } catch (error) {
+                console.error('Failed to copy:', error);
+                if (window.showNotification) {
+                    showNotification('Failed to copy code', 'error');
+                }
+            }
+        };
+    </script>
+</body>
+</html>
+

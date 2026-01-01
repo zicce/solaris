@@ -1178,8 +1178,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const hashToKey = { fortnite: 'fortnite', spoofers: 'hwid', bo6: 'bo6', rust: 'rust' };
 
   const statusPalette = {
+    unknown: { color: '#808080', bg: 'rgba(128,128,128,0.20)' },
     success: { color: '#22e41d', bg: 'rgba(34,228,29,0.20)' },
-    warning: { color: '#60a5fa', bg: 'rgba(96,165,250,0.20)' }
+    warning: { color: '#60a5fa', bg: 'rgba(96,165,250,0.20)' },
+    error: { color: '#ff0000', bg: 'rgba(255,0,0,0.20)' },
+    maintenance: { color: '#ffa500', bg: 'rgba(255,165,0,0.20)' }
   };
 
   // Preload product images immediately on page load
@@ -1203,6 +1206,16 @@ document.addEventListener('DOMContentLoaded', () => {
     img.src = src;
   });
 
+  // Product name to Firebase product ID mapping
+  const productIdMap = {
+    'Fortnite Private': 'fortnite-private',
+    'Fortnite Internal': 'fortnite-internal',
+    'Permanent Spoofer': 'permanent-spoofer',
+    'Temporary Spoofer': 'temporary-spoofer',
+    'Black Ops 7': 'black-ops-6',
+    'Rust External': 'rust'
+  };
+
   const productConfigs = {
     fortnite: {
       title: 'Fortnite Cheats',
@@ -1210,8 +1223,8 @@ document.addEventListener('DOMContentLoaded', () => {
       sortLabel: 'Sort by',
       image: 'images.home/Fortnite.webp.578d1fc74972b65d4e63696d40ff19e6.webp',
       cards: [
-        { name: 'Fortnite Private', price: '€9.99', statusText: 'Undetected (Working)', statusType: 'success', link: 'fortnite', image: 'images.home/fortniteprivate.webp' },
-        { name: 'Fortnite Internal', price: '€11.99', statusText: 'Undetected (Working)', statusType: 'success', link: 'fortnite-internal', image: 'images.home/fortniteinternal.webp' }
+        { name: 'Fortnite Private', price: '€9.99', statusText: 'UNKNOWN', statusType: 'unknown', link: 'fortnite', image: 'images.home/fortniteprivate.webp' },
+        { name: 'Fortnite Internal', price: '€11.99', statusText: 'UNKNOWN', statusType: 'unknown', link: 'fortnite-internal', image: 'images.home/fortniteinternal.webp' }
       ]
     },
     hwid: {
@@ -1220,8 +1233,8 @@ document.addEventListener('DOMContentLoaded', () => {
       sortLabel: 'Sort by',
       image: 'images.home/HWID-Spoofer.webp.9673333fd879bcd7ac73d251b0bbe66e.webp',
       cards: [
-        { name: 'Permanent Spoofer', price: '€19.99', statusText: 'Undetected (Working)', statusType: 'success', link: 'hwid-unban', image: 'products/images/hwid-unban.webp' },
-        { name: 'Temporary Spoofer', price: '€4.99', statusText: 'Undetected (Working)', statusType: 'success', link: 'temp-unban', image: 'products/images/temp.webp' }
+        { name: 'Permanent Spoofer', price: '€19.99', statusText: 'UNKNOWN', statusType: 'unknown', link: 'hwid-unban', image: 'products/images/hwid-unban.webp' },
+        { name: 'Temporary Spoofer', price: '€4.99', statusText: 'UNKNOWN', statusType: 'unknown', link: 'temp-unban', image: 'products/images/temp.webp' }
       ]
     },
     bo6: {
@@ -1230,7 +1243,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sortLabel: 'Sort by',
       image: 'images.home/BO6.webp.91d8d973248ace5981dafc1603ed6ecf.webp',
       cards: [
-        { name: 'Black Ops 7', price: '€4.99', statusText: 'Undetected (Working)', statusType: 'success', link: 'bo6-warzone-external', image: 'products/images/blackops.webp' }
+        { name: 'Black Ops 7', price: '€4.99', statusText: 'UNKNOWN', statusType: 'unknown', link: 'bo6-warzone-external', image: 'products/images/blackops.webp' }
       ]
     },
     rust: {
@@ -1239,13 +1252,14 @@ document.addEventListener('DOMContentLoaded', () => {
       sortLabel: 'Sort by',
       image: 'images.home/Rust.webp.dc3f4da6ca4df59ee6834752f8ed0039.webp',
       cards: [
-        { name: 'Rust External', price: '€6.99', statusText: 'Undetected (Working)', statusType: 'success', link: 'rust', image: 'products/images/rust.webp' }
+        { name: 'Rust External', price: '€6.99', statusText: 'UNKNOWN', statusType: 'unknown', link: 'rust', image: 'products/images/rust.webp' }
       ]
     }
   };
 
   const renderCards = (cards = [], fallbackImage) => cards.map(card => {
-    const palette = statusPalette[card.statusType || 'success'];
+    const palette = statusPalette[card.statusType || 'unknown'];
+    const productId = productIdMap[card.name] || '';
     const priceBlock = card.price ? `
             <div class="cNexusProduct__prices">
               <div class="cNexusProduct_price">
@@ -1254,8 +1268,16 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             </div>
     ` : '';
+    
+    // Determine icon based on status
+    let statusIcon = 'fas fa-question-circle';
+    if (card.statusText === 'Undetected (Working)') statusIcon = 'fas fa-shield-alt';
+    else if (card.statusText === 'Updating (Not Working)') statusIcon = 'fas fa-wrench';
+    else if (card.statusText === 'Detected (Not Working)') statusIcon = 'fas fa-exclamation-triangle';
+    else if (card.statusText === 'Maintenance') statusIcon = 'fas fa-tools';
+    
     return `
-      <li class="ipsCarousel_item cNexusProduct cNexusProduct_mini">
+      <li class="ipsCarousel_item cNexusProduct cNexusProduct_mini" data-product-id="${productId}">
         <a href="${card.link}" class="cNexusPackage_img">
           <img src="${card.image || fallbackImage}" class="ipsImage" width="300" height="auto" alt="${card.name}" loading="eager" decoding="async" style="display:block;max-width:100%;height:auto;">
         </a>
@@ -1265,9 +1287,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ${priceBlock}
           </div>
           <div class="productStatus">
-            <div class="_status" style="color: ${card.statusColor || palette.color}; background: ${card.statusBg || palette.bg};">
-              <i class="fas fa-shield-alt" aria-hidden="true"></i>
-              <span>${card.statusText}</span>
+            <div class="_status product-status-badge" data-product-id="${productId}" style="color: ${card.statusColor || palette.color}; background: ${card.statusBg || palette.bg};">
+              <i class="${statusIcon}" aria-hidden="true"></i>
+              <span class="status-text">${card.statusText}</span>
             </div>
           </div>
           <a href="${card.link}" class="cStorePackage_button"><i class="fa-sharp fa-light fa-bag-shopping" aria-hidden="true"></i> Buy Now</a>
@@ -1311,6 +1333,11 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
     `;
+    
+    // Update product card statuses after rendering
+    if (window.updateAllProductCardStatuses) {
+      setTimeout(() => window.updateAllProductCardStatuses(), 100);
+    }
 
     // Force immediate image loading - images should already be in cache from preload
     const images = categoryWrapper.querySelectorAll('img');
@@ -1464,5 +1491,237 @@ window.addEventListener('error', function(e) {
     }
     return false;
 }, true);
+</script>
+<script type="module">
+// Firebase Product Status Management for Product Cards - Embedded to avoid CORS issues
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+// Firebase Configuration for Product Statuses (separate from auth)
+const firebaseConfigStatus = {
+  apiKey: "AIzaSyDolzQZPSdzWQiYbqjhlyNkjE9LrYxkb7E",
+  authDomain: "solaris-database-b5384.firebaseapp.com",
+  projectId: "solaris-database-b5384",
+  storageBucket: "solaris-database-b5384.firebasestorage.app",
+  messagingSenderId: "229880902004",
+  appId: "1:229880902004:web:34be022f36ac4157433c21",
+  measurementId: "G-27L86KFYG6"
+};
+
+// Initialize Firebase for Product Statuses (separate app instance)
+const appStatus = initializeApp(firebaseConfigStatus, "ProductStatusesIndex");
+const dbStatus = getFirestore(appStatus);
+
+// Status configuration mapping
+const STATUS_CONFIG = {
+  "UNKNOWN": {
+    background: "rgba(128,128,128,0.20)",
+    color: "#808080",
+    icon: "fas fa-question-circle"
+  },
+  "Undetected (Working)": {
+    background: "rgba(34,228,29,0.20)",
+    color: "#22e41d",
+    icon: "fas fa-shield-alt"
+  },
+  "Updating (Not Working)": {
+    background: "rgba(0,123,255,0.20)",
+    color: "#007bff",
+    icon: "fas fa-wrench"
+  },
+  "Detected (Not Working)": {
+    background: "rgba(255,0,0,0.20)",
+    color: "#ff0000",
+    icon: "fas fa-exclamation-triangle"
+  },
+  "Maintenance": {
+    background: "rgba(255,165,0,0.20)",
+    color: "#ffa500",
+    icon: "fas fa-tools"
+  }
+};
+
+function getStatusConfig(statusText) {
+  return STATUS_CONFIG[statusText] || STATUS_CONFIG["UNKNOWN"];
+}
+
+function updateProductCardStatus(productId, statusText) {
+  const statusBadge = document.querySelector(`.product-status-badge[data-product-id="${productId}"]`);
+  if (!statusBadge) return;
+  
+  const config = getStatusConfig(statusText);
+  const iconElement = statusBadge.querySelector('i');
+  const textElement = statusBadge.querySelector('.status-text');
+  
+  if (iconElement) {
+    iconElement.className = config.icon;
+  }
+  if (textElement) {
+    textElement.textContent = statusText;
+  }
+  
+  statusBadge.style.background = config.background;
+  statusBadge.style.color = config.color;
+}
+
+// Global function to update all product card statuses (called after card rendering)
+window.updateAllProductCardStatuses = function() {
+  const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal'];
+  allProductIds.forEach((productId) => {
+    const statusBadge = document.querySelector(`.product-status-badge[data-product-id="${productId}"]`);
+    if (statusBadge) {
+      // Status will be updated by Firebase listener, but set default to UNKNOWN if not set
+      const currentText = statusBadge.querySelector('.status-text')?.textContent;
+      if (!currentText || currentText === 'UNKNOWN') {
+        updateProductCardStatus(productId, 'UNKNOWN');
+      }
+    }
+  });
+};
+
+// Cache key for localStorage
+const STATUS_CACHE_KEY = 'productStatuses_cache';
+const STATUS_CACHE_TIMESTAMP = 'productStatuses_cache_timestamp';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Load statuses from cache
+function loadStatusesFromCache() {
+  try {
+    const cached = localStorage.getItem(STATUS_CACHE_KEY);
+    const timestamp = localStorage.getItem(STATUS_CACHE_TIMESTAMP);
+    
+    if (cached && timestamp) {
+      const age = Date.now() - parseInt(timestamp);
+      if (age < CACHE_DURATION) {
+        return JSON.parse(cached);
+      }
+    }
+  } catch (e) {
+    console.warn("Error loading cache:", e);
+  }
+  return null;
+}
+
+// Save statuses to cache
+function saveStatusesToCache(statuses) {
+  try {
+    localStorage.setItem(STATUS_CACHE_KEY, JSON.stringify(statuses));
+    localStorage.setItem(STATUS_CACHE_TIMESTAMP, Date.now().toString());
+  } catch (e) {
+    console.warn("Error saving cache:", e);
+  }
+}
+
+async function initializeProductCardStatuses() {
+  try {
+    // Load from cache first for instant display
+    const cachedStatuses = loadStatusesFromCache();
+    if (cachedStatuses) {
+      console.log("📦 Loading statuses from cache...");
+      Object.keys(cachedStatuses).forEach((productId) => {
+        const statusData = cachedStatuses[productId];
+        if (statusData && statusData.status) {
+          updateProductCardStatus(productId, statusData.status);
+        }
+      });
+    }
+    
+    // Get initial statuses from Firebase (with timeout)
+    const statusesRef = collection(dbStatus, "productStatuses");
+    
+    // Use Promise.race to add timeout
+    const fetchPromise = getDocs(statusesRef);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Firebase timeout')), 3000)
+    );
+    
+    let snapshot;
+    try {
+      snapshot = await Promise.race([fetchPromise, timeoutPromise]);
+    } catch (error) {
+      if (error.message === 'Firebase timeout') {
+        console.warn("⏱️ Firebase timeout, using cache");
+        return; // Use cached data
+      }
+      throw error;
+    }
+    
+    const statuses = {};
+    snapshot.forEach((doc) => {
+      statuses[doc.id] = doc.data();
+    });
+    
+    // Save to cache
+    saveStatusesToCache(statuses);
+    
+    // Update all product cards with their statuses from Firebase
+    Object.keys(statuses).forEach((productId) => {
+      const statusData = statuses[productId];
+      if (statusData && statusData.status) {
+        updateProductCardStatus(productId, statusData.status);
+      }
+    });
+    
+    // Set products without status to UNKNOWN
+    const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal'];
+    allProductIds.forEach((productId) => {
+      if (!statuses[productId] || !statuses[productId].status) {
+        updateProductCardStatus(productId, "UNKNOWN");
+      }
+    });
+    
+    // Set up real-time listener for future updates
+    onSnapshot(statusesRef, (snapshot) => {
+      console.log("🔄 Real-time update received from Firebase (Product Cards)");
+      const updatedStatuses = {};
+      snapshot.forEach((doc) => {
+        updatedStatuses[doc.id] = doc.data();
+      });
+      
+      // Save to cache
+      saveStatusesToCache(updatedStatuses);
+      
+      Object.keys(updatedStatuses).forEach((productId) => {
+        const statusData = updatedStatuses[productId];
+        if (statusData && statusData.status) {
+          updateProductCardStatus(productId, statusData.status);
+        }
+      });
+      
+      // Set products without status to UNKNOWN
+      allProductIds.forEach((productId) => {
+        if (!updatedStatuses[productId] || !updatedStatuses[productId].status) {
+          updateProductCardStatus(productId, "UNKNOWN");
+        }
+      });
+    }, (error) => {
+      console.error("Error in status subscription:", error);
+    });
+    
+    console.log("✅ Firebase Product Card Statuses initialized successfully!");
+    console.log("📡 Real-time updates enabled for product cards");
+    
+  } catch (error) {
+    console.error("❌ Error initializing product card statuses:", error);
+    // Fallback to cache if Firebase fails
+    const cachedStatuses = loadStatusesFromCache();
+    if (cachedStatuses) {
+      console.log("📦 Falling back to cached statuses");
+      Object.keys(cachedStatuses).forEach((productId) => {
+        const statusData = cachedStatuses[productId];
+        if (statusData && statusData.status) {
+          updateProductCardStatus(productId, statusData.status);
+        }
+      });
+    }
+  }
+}
+
+// Wait for DOM to be fully loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeProductCardStatuses);
+} else {
+    initializeProductCardStatuses();
+}
 </script>
 </body></html>
