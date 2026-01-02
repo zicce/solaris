@@ -1177,6 +1177,37 @@ document.addEventListener('DOMContentLoaded', () => {
   const keyToHash = { fortnite: 'fortnite', hwid: 'spoofers', bo6: 'bo6', rust: 'rust' };
   const hashToKey = { fortnite: 'fortnite', spoofers: 'hwid', bo6: 'bo6', rust: 'rust' };
 
+  // Load statuses from cache immediately for instant display
+  const STATUS_CACHE_KEY = 'productStatuses_cache';
+  const STATUS_CACHE_TIMESTAMP = 'productStatuses_cache_timestamp';
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  
+  function loadStatusesFromCache() {
+    try {
+      const cached = localStorage.getItem(STATUS_CACHE_KEY);
+      const timestamp = localStorage.getItem(STATUS_CACHE_TIMESTAMP);
+      if (cached && timestamp) {
+        const age = Date.now() - parseInt(timestamp);
+        if (age < CACHE_DURATION) {
+          return JSON.parse(cached);
+        }
+      }
+    } catch (e) {
+      console.warn("Error loading cache:", e);
+    }
+    return null;
+  }
+  
+  const cachedStatuses = loadStatusesFromCache();
+  
+  // Helper function to get status from cache
+  function getCachedStatus(productId) {
+    if (cachedStatuses && cachedStatuses[productId] && cachedStatuses[productId].status) {
+      return cachedStatuses[productId].status;
+    }
+    return 'UNKNOWN';
+  }
+
   const statusPalette = {
     unknown: { color: '#808080', bg: 'rgba(128,128,128,0.20)' },
     success: { color: '#22e41d', bg: 'rgba(34,228,29,0.20)' },
@@ -1223,8 +1254,8 @@ document.addEventListener('DOMContentLoaded', () => {
       sortLabel: 'Sort by',
       image: 'images.home/Fortnite.webp.578d1fc74972b65d4e63696d40ff19e6.webp',
       cards: [
-        { name: 'Fortnite Private', price: '€9.99', statusText: 'UNKNOWN', statusType: 'unknown', link: 'fortnite', image: 'images.home/fortniteprivate.webp' },
-        { name: 'Fortnite Internal', price: '€11.99', statusText: 'UNKNOWN', statusType: 'unknown', link: 'fortnite-internal', image: 'images.home/fortniteinternal.webp' }
+        { name: 'Fortnite Private', price: '€9.99', statusText: getCachedStatus('fortnite-private'), statusType: 'unknown', link: 'fortnite', image: 'images.home/fortniteprivate.webp' },
+        { name: 'Fortnite Internal', price: '€11.99', statusText: getCachedStatus('fortnite-internal'), statusType: 'unknown', link: 'fortnite-internal', image: 'images.home/fortniteinternal.webp' }
       ]
     },
     hwid: {
@@ -1233,8 +1264,8 @@ document.addEventListener('DOMContentLoaded', () => {
       sortLabel: 'Sort by',
       image: 'images.home/HWID-Spoofer.webp.9673333fd879bcd7ac73d251b0bbe66e.webp',
       cards: [
-        { name: 'Permanent Spoofer', price: '€19.99', statusText: 'UNKNOWN', statusType: 'unknown', link: 'hwid-unban', image: 'products/images/hwid-unban.webp' },
-        { name: 'Temporary Spoofer', price: '€4.99', statusText: 'UNKNOWN', statusType: 'unknown', link: 'temp-unban', image: 'products/images/temp.webp' }
+        { name: 'Permanent Spoofer', price: '€19.99', statusText: getCachedStatus('permanent-spoofer'), statusType: 'unknown', link: 'hwid-unban', image: 'products/images/hwid-unban.webp' },
+        { name: 'Temporary Spoofer', price: '€4.99', statusText: getCachedStatus('temporary-spoofer'), statusType: 'unknown', link: 'temp-unban', image: 'products/images/temp.webp' }
       ]
     },
     bo6: {
@@ -1243,7 +1274,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sortLabel: 'Sort by',
       image: 'images.home/BO6.webp.91d8d973248ace5981dafc1603ed6ecf.webp',
       cards: [
-        { name: 'Black Ops 7', price: '€4.99', statusText: 'UNKNOWN', statusType: 'unknown', link: 'bo6-warzone-external', image: 'products/images/blackops.webp' }
+        { name: 'Black Ops 7', price: '€4.99', statusText: getCachedStatus('black-ops-6'), statusType: 'unknown', link: 'bo6-warzone-external', image: 'products/images/blackops.webp' }
       ]
     },
     rust: {
@@ -1252,7 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sortLabel: 'Sort by',
       image: 'images.home/Rust.webp.dc3f4da6ca4df59ee6834752f8ed0039.webp',
       cards: [
-        { name: 'Rust External', price: '€6.99', statusText: 'UNKNOWN', statusType: 'unknown', link: 'rust', image: 'products/images/rust.webp' }
+        { name: 'Rust External', price: '€6.99', statusText: getCachedStatus('rust'), statusType: 'unknown', link: 'rust', image: 'products/images/rust.webp' }
       ]
     }
   };
@@ -1269,12 +1300,33 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
     ` : '';
     
-    // Determine icon based on status
+    // Determine icon and status type based on status
     let statusIcon = 'fas fa-question-circle';
-    if (card.statusText === 'Undetected (Working)') statusIcon = 'fas fa-shield-alt';
-    else if (card.statusText === 'Updating (Not Working)') statusIcon = 'fas fa-wrench';
-    else if (card.statusText === 'Detected (Not Working)') statusIcon = 'fas fa-exclamation-triangle';
-    else if (card.statusText === 'Maintenance') statusIcon = 'fas fa-tools';
+    let statusType = 'unknown';
+    let statusColor = palette.color;
+    let statusBg = palette.bg;
+    
+    if (card.statusText === 'Undetected (Working)') {
+      statusIcon = 'fas fa-shield-alt';
+      statusType = 'success';
+      statusColor = statusPalette.success.color;
+      statusBg = statusPalette.success.bg;
+    } else if (card.statusText === 'Updating (Not Working)') {
+      statusIcon = 'fas fa-wrench';
+      statusType = 'warning';
+      statusColor = statusPalette.warning.color;
+      statusBg = statusPalette.warning.bg;
+    } else if (card.statusText === 'Detected (Not Working)') {
+      statusIcon = 'fas fa-exclamation-triangle';
+      statusType = 'error';
+      statusColor = statusPalette.error.color;
+      statusBg = statusPalette.error.bg;
+    } else if (card.statusText === 'Maintenance') {
+      statusIcon = 'fas fa-tools';
+      statusType = 'maintenance';
+      statusColor = statusPalette.maintenance.color;
+      statusBg = statusPalette.maintenance.bg;
+    }
     
     return `
       <li class="ipsCarousel_item cNexusProduct cNexusProduct_mini" data-product-id="${productId}">
@@ -1287,7 +1339,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${priceBlock}
           </div>
           <div class="productStatus">
-            <div class="_status product-status-badge" data-product-id="${productId}" style="color: ${card.statusColor || palette.color}; background: ${card.statusBg || palette.bg};">
+            <div class="_status product-status-badge" data-product-id="${productId}" style="color: ${statusColor}; background: ${statusBg};">
               <i class="${statusIcon}" aria-hidden="true"></i>
               <span class="status-text">${card.statusText}</span>
             </div>
@@ -1334,9 +1386,10 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
     
-    // Update product card statuses after rendering
+    // Update product card statuses immediately after rendering (from cache and Firebase)
     if (window.updateAllProductCardStatuses) {
-      setTimeout(() => window.updateAllProductCardStatuses(), 100);
+      // Call immediately for instant cache update
+      window.updateAllProductCardStatuses();
     }
 
     // Force immediate image loading - images should already be in cache from preload
@@ -1564,15 +1617,28 @@ function updateProductCardStatus(productId, statusText) {
   statusBadge.style.color = config.color;
 }
 
+// Global function to get status from cache for a product
+window.getProductStatusFromCache = function(productId) {
+  const cachedStatuses = loadStatusesFromCache();
+  if (cachedStatuses && cachedStatuses[productId] && cachedStatuses[productId].status) {
+    return cachedStatuses[productId].status;
+  }
+  return 'UNKNOWN';
+};
+
 // Global function to update all product card statuses (called after card rendering)
 window.updateAllProductCardStatuses = function() {
   const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal'];
+  const cachedStatuses = loadStatusesFromCache();
+  
   allProductIds.forEach((productId) => {
     const statusBadge = document.querySelector(`.product-status-badge[data-product-id="${productId}"]`);
     if (statusBadge) {
-      // Status will be updated by Firebase listener, but set default to UNKNOWN if not set
-      const currentText = statusBadge.querySelector('.status-text')?.textContent;
-      if (!currentText || currentText === 'UNKNOWN') {
+      // Check cache first for instant update
+      if (cachedStatuses && cachedStatuses[productId] && cachedStatuses[productId].status) {
+        updateProductCardStatus(productId, cachedStatuses[productId].status);
+      } else {
+        // Set default to UNKNOWN if not in cache
         updateProductCardStatus(productId, 'UNKNOWN');
       }
     }
@@ -1618,10 +1684,23 @@ async function initializeProductCardStatuses() {
     const cachedStatuses = loadStatusesFromCache();
     if (cachedStatuses) {
       console.log("📦 Loading statuses from cache...");
+      // Update all product cards immediately with cached statuses
       Object.keys(cachedStatuses).forEach((productId) => {
         const statusData = cachedStatuses[productId];
         if (statusData && statusData.status) {
           updateProductCardStatus(productId, statusData.status);
+        }
+      });
+      
+      // Also update any cards that might have been rendered before this script ran
+      const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal'];
+      allProductIds.forEach((productId) => {
+        const statusBadge = document.querySelector(`.product-status-badge[data-product-id="${productId}"]`);
+        if (statusBadge) {
+          const statusData = cachedStatuses[productId];
+          if (statusData && statusData.status) {
+            updateProductCardStatus(productId, statusData.status);
+          }
         }
       });
     }
