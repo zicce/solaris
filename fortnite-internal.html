@@ -1104,7 +1104,29 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 		</div>
 	</div>
 
-</section>
+
+	<div class="video-container">
+		<video controls="" data-video-embed="" id="video" src="products/media/Fortnite_2026.01.11_-_15.36.52.04.DVR.mp4">
+			
+		</video>
+
+		<div class="fullscreen-icon" onclick="toggleFullscreen()">
+			⛶
+		</div>
+	</div>
+	<script>
+        function toggleFullscreen() {
+            const video = document.getElementById('video');
+            if (!video) return;
+            if (video.requestFullscreen) {
+                video.requestFullscreen();
+            } else if (video.webkitRequestFullscreen) { // Safari
+                video.webkitRequestFullscreen();
+            } else if (video.msRequestFullscreen) { // IE/Edge
+                video.msRequestFullscreen();
+            }
+        }
+    </script></section>
 
 </div>
 

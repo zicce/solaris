@@ -1219,6 +1219,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Preload product images immediately on page load
   const productImages = [
     'images.home/fortniteprivate.webp',
+    'images.home/aiaimbot.png',
     'products/images/hwid-unban.webp',
     'products/images/temp.webp',
     'products/images/blackops.webp',
@@ -1241,6 +1242,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const productIdMap = {
     'Fortnite Private': 'fortnite-private',
     'Fortnite Internal': 'fortnite-internal',
+    'AI Aimbot': 'ai-aimbot',
     'Permanent Spoofer': 'permanent-spoofer',
     'Temporary Spoofer': 'temporary-spoofer',
     'Black Ops 7': 'black-ops-6',
@@ -1250,12 +1252,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const productConfigs = {
     fortnite: {
       title: 'Fortnite Cheats',
-      countLabel: '2 products',
+      countLabel: '3 products',
       sortLabel: 'Sort by',
       image: 'images.home/Fortnite.webp.578d1fc74972b65d4e63696d40ff19e6.webp',
       cards: [
         { name: 'Fortnite Private', price: '€9.99', statusText: getCachedStatus('fortnite-private'), statusType: 'unknown', link: 'fortnite', image: 'images.home/fortniteprivate.webp' },
-        { name: 'Fortnite Internal', price: '€11.99', statusText: getCachedStatus('fortnite-internal'), statusType: 'unknown', link: 'fortnite-internal', image: 'images.home/fortniteinternal.webp' }
+        { name: 'Fortnite Internal', price: '€11.99', statusText: getCachedStatus('fortnite-internal'), statusType: 'unknown', link: 'fortnite-internal', image: 'images.home/fortniteinternal.webp' },
+        { name: 'AI Aimbot', price: '€19.99', statusText: getCachedStatus('ai-aimbot'), statusType: 'unknown', link: 'ai-aimbot', image: 'images.home/aiaimbot.png' }
       ]
     },
     hwid: {
@@ -1628,7 +1631,7 @@ window.getProductStatusFromCache = function(productId) {
 
 // Global function to update all product card statuses (called after card rendering)
 window.updateAllProductCardStatuses = function() {
-  const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal'];
+  const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal', 'ai-aimbot'];
   const cachedStatuses = loadStatusesFromCache();
   
   allProductIds.forEach((productId) => {
@@ -1693,7 +1696,7 @@ async function initializeProductCardStatuses() {
       });
       
       // Also update any cards that might have been rendered before this script ran
-      const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal'];
+      const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal', 'ai-aimbot'];
       allProductIds.forEach((productId) => {
         const statusBadge = document.querySelector(`.product-status-badge[data-product-id="${productId}"]`);
         if (statusBadge) {
@@ -1742,7 +1745,7 @@ async function initializeProductCardStatuses() {
     });
     
     // Set products without status to UNKNOWN
-    const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal'];
+    const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal', 'ai-aimbot'];
     allProductIds.forEach((productId) => {
       if (!statuses[productId] || !statuses[productId].status) {
         updateProductCardStatus(productId, "UNKNOWN");
