@@ -97,8 +97,25 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}/`);
-  console.log('Clean URLs enabled - .html extension will be removed');
+function startServer(port) {
+  server.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}/`);
+    console.log('Clean URLs enabled - .html extension will be removed');
+  });
+}
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    const newPort = parseInt(PORT) + 1;
+    console.log(`Port ${PORT} is in use, trying port ${newPort}...`);
+    server.listen(newPort, () => {
+      console.log(`Server running at http://localhost:${newPort}/`);
+      console.log('Clean URLs enabled - .html extension will be removed');
+    });
+  } else {
+    throw err;
+  }
 });
+
+startServer(PORT);
 
