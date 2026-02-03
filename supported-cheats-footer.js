@@ -15,13 +15,14 @@ const STATUS_CACHE_KEY = "productStatuses_cache";
 const STATUS_CACHE_TIMESTAMP = "productStatuses_cache_timestamp";
 const CACHE_DURATION_MS = 5 * 60 * 1000;
 
+const APP_ROOT_URL = new URL(".", import.meta.url);
+
 function productUrlForId(productId) {
   const pid = String(productId || "").trim();
   if (!pid) return "#";
-  const encoded = encodeURIComponent(pid);
-  const host = (location.hostname || "").toLowerCase();
-  const isLocal = host === "localhost" || host === "127.0.0.1";
-  return isLocal ? `product.html?id=${encoded}` : `/product/${encoded}`;
+  const url = new URL("product.html", APP_ROOT_URL);
+  url.searchParams.set("id", pid);
+  return url.href;
 }
 
 function escapeHtml(text) {
