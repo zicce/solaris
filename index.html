@@ -1921,9 +1921,7 @@ function buildCardsForHomeCard(homeCard, getCachedStatusFn) {
     const pid = String(productId || '').trim();
     if (!pid) return '#';
     const encoded = encodeURIComponent(pid);
-    const host = (location.hostname || '').toLowerCase();
-    const isLocal = host === 'localhost' || host === '127.0.0.1';
-    return isLocal ? `product.html?id=${encoded}` : `/product/${encoded}`;
+    return `product.html?id=${encoded}`;
   };
 
   return ids
