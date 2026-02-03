@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Status Dashboard - Solaris</title>
+    <title>Product Management Dashboard - Solaris</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <style>
@@ -18,10 +18,11 @@
             background: linear-gradient(135deg, #0a0a0a 0%, #141414 50%, #8B4513 100%);
             min-height: 100vh;
             padding: 20px;
+            color: #fff;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: #1e1e1e;
             border-radius: 16px;
@@ -48,170 +49,458 @@
             font-size: 14px;
         }
         
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-        
-        .status-indicator.connected {
-            background: #22e41d;
-            box-shadow: 0 0 10px rgba(34, 228, 29, 0.5);
-        }
-        
-        .status-indicator.disconnected {
-            background: #ff0000;
-        }
-        
         .content {
             padding: 30px;
             background: #1e1e1e;
         }
-        
-        .products-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        
-        .product-card {
+
+        .card {
             background: #2a2a2a;
-            border: 2px solid #3a3a3a;
+            border: 1px solid #3a3a3a;
             border-radius: 12px;
             padding: 20px;
-            transition: all 0.3s ease;
+            color: #fff;
         }
         
-        .product-card:hover {
-            border-color: #FF8C00;
-            box-shadow: 0 4px 12px rgba(255, 140, 0, 0.3);
-            transform: translateY(-2px);
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
         
-        .product-card.saving {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-        
-        .product-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 15px;
+        .search-box {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            padding: 10px 15px;
+            min-width: 300px;
         }
         
-        .product-id {
-            font-size: 12px;
+        .search-box input {
+            background: none;
+            border: none;
+            color: #fff;
+            outline: none;
+            flex: 1;
+            margin-left: 10px;
+        }
+        
+        .search-box i {
             color: #888;
-            font-weight: normal;
-            font-family: monospace;
         }
         
-        .status-section {
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .filter-select {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            color: #fff;
+            padding: 8px 12px;
+            outline: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, rgba(255, 140, 0, 0.1) 0%, rgba(255, 140, 0, 0.2) 100%);
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            color: rgba(255, 140, 0, 0.9);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(135deg, rgba(255, 140, 0, 0.3) 0%, rgba(255, 140, 0, 0.4) 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 140, 0, 0.3);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #FF8C00 0%, #FFA500 100%);
+            color: #000;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #FFA500 0%, #FFB347 100%);
+        }
+        
+        .products-table {
+            background: #2a2a2a;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #3a3a3a;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #3a3a3a;
+        }
+        
+        .table td {
+            padding: 15px;
+            border-bottom: 1px solid #3a3a3a;
+            color: #ddd;
+        }
+        
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .table tr:hover {
+            background: #333;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-unknown {
+            background: rgba(128, 128, 128, 0.2);
+            color: #808080;
+        }
+        
+        .status-working {
+            background: rgba(34, 228, 29, 0.2);
+            color: #22e41d;
+        }
+        
+        .status-updating {
+            background: rgba(0, 123, 255, 0.2);
+            color: #007bff;
+        }
+        
+        .status-detected {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff0000;
+        }
+        
+        .status-maintenance {
+            background: rgba(255, 165, 0, 0.2);
+            color: #ffa500;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .btn-edit {
+            background: rgba(255, 140, 0, 0.1);
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            color: rgba(255, 140, 0, 0.9);
+        }
+        
+        .btn-view {
+            background: rgba(0, 123, 255, 0.1);
+            border: 1px solid rgba(0, 123, 255, 0.3);
+            color: rgba(0, 123, 255, 0.9);
+        }
+        
+        .btn-delete {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            color: rgba(255, 0, 0, 0.9);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: #1e1e1e;
+            border: 1px solid #3a3a3a;
+            border-radius: 12px;
+            max-width: 800px;
+            margin: 50px auto;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        
+        .modal-header {
+            background: #2a2a2a;
+            padding: 20px 30px;
+            border-bottom: 1px solid #3a3a3a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            color: #fff;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-close:hover {
+            color: #fff;
+        }
+        
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            max-height: calc(90vh - 140px);
+            color: #fff;
+        }
+
+        .modal-body p,
+        .modal-body strong {
+            color: #fff;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #3a3a3a;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            background: none;
+            border: none;
+            color: #888;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab:hover {
+            color: #fff;
+        }
+        
+        .tab.active {
+            color: #FF8C00;
+            border-bottom-color: #FF8C00;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            color: #fff;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .form-control {
+            width: 100%;
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            padding: 12px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: #FF8C00;
+            box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.1);
+        }
+        
+        .form-control.textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .variants-list, .features-list {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            padding: 15px;
             margin-bottom: 15px;
         }
         
-        .status-label {
-            font-size: 12px;
-            color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-        
-        .current-status {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
+        .variant-item, .feature-item {
+            display: flex;
+            gap: 10px;
             margin-bottom: 10px;
-        }
-        
-        .status-select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #444;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: 10px;
             background: #1a1a1a;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.2s;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            align-items: center;
         }
-        
-        .status-select:focus {
-            outline: none;
-            border-color: #FF8C00;
-            box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.2);
+
+        .badge-item {
+            border-radius: 6px;
         }
-        
-        .status-select option {
-            background: #1a1a1a;
-            color: #fff;
-        }
-        
-        .save-btn {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, rgba(255, 140, 0, 0.01) 0%, rgba(255, 140, 0, 0.2) 100%);
-            color: rgba(255, 140, 0, 0.9);
-            border: 1px solid rgba(255, 140, 0, 0.2);
+
+        .badge-icon-preview {
+            width: 44px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #3a3a3a;
             border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
+            background: #121212;
+            flex: 0 0 auto;
+        }
+
+        .badge-icon-preview i {
+            font-size: 16px;
+            color: #ffa60d;
+        }
+
+        .icon-legend {
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .icon-legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 10px;
             margin-top: 10px;
         }
-        
-        .save-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
-            background: linear-gradient(135deg, rgba(255, 140, 0, 0.4) 0%, rgba(255, 140, 0, 0.5) 100%);
-            color: rgba(255, 140, 0, 1);
-        }
-        
-        .save-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        .save-btn.saving {
-            background: #6c757d;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
+
+        .icon-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid #2f2f2f;
             border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            z-index: 1000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
+            background: #121212;
+        }
+
+        .icon-legend-item i {
+            color: #ffa60d;
+        }
+
+        .icon-legend-item code {
+            color: #cfcfcf;
+            font-size: 12px;
         }
         
-        .notification.show {
-            transform: translateX(0);
+        .variant-item:last-child, .feature-item:last-child {
+            margin-bottom: 0;
         }
         
-        .notification.success {
-            background: #22e41d;
+        .variant-input, .feature-input {
+            flex: 1;
         }
         
-        .notification.error {
-            background: #ff0000;
+        .variant-price {
+            max-width: 100px;
+        }
+        
+        .btn-remove {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            color: rgba(255, 0, 0, 0.9);
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .btn-remove:hover {
+            background: rgba(255, 0, 0, 0.2);
+        }
+        
+        .btn-add {
+            background: rgba(34, 228, 29, 0.1);
+            border: 1px solid rgba(34, 228, 29, 0.3);
+            color: rgba(34, 228, 29, 0.9);
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-add:hover {
+            background: rgba(34, 228, 29, 0.2);
+        }
+        
+        .modal-footer {
+            background: #2a2a2a;
+            padding: 20px 30px;
+            border-top: 1px solid #3a3a3a;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
         }
         
         .loading {
@@ -235,321 +524,532 @@
             100% { transform: rotate(360deg); }
         }
         
-        .connection-status {
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background: #22e41d;
+        }
+        
+        .notification.error {
+            background: #ff0000;
+        }
+        
+        .empty-state {
             text-align: center;
-            padding: 15px;
-            background: #2a2a2a;
-            border: 1px solid #3a3a3a;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #fff;
+            padding: 60px 20px;
+            color: #888;
         }
         
-        .dev-section {
-            margin-top: 40px;
-            padding-top: 30px;
-            border-top: 2px solid #3a3a3a;
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.5;
         }
         
-        .dev-section-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 20px;
-            display: flex;
+        .connection-status {
+            display: inline-flex;
             align-items: center;
-            gap: 10px;
-        }
-        
-        .dev-section-title i {
-            color: rgba(255, 140, 0, 0.9);
-        }
-        
-        .dev-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        
-        .dev-code-box {
-            background: #1e1e1e;
-            border: 1px solid #3a3a3a;
-            border-radius: 8px;
-            padding: 0;
-            overflow: hidden;
-            max-height: 400px;
-            overflow-y: auto;
-            position: relative;
-        }
-        
-        .dev-code-box pre {
-            margin: 0;
-            padding: 20px;
-            background: transparent;
-            font-family: 'Courier New', 'Consolas', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            overflow-x: auto;
-        }
-        
-        .dev-code-box code {
-            font-family: 'Courier New', 'Consolas', monospace;
-        }
-        
-        .code-actions {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            display: flex;
             gap: 8px;
-            z-index: 10;
-        }
-        
-        .code-btn {
-            padding: 6px 12px;
-            background: rgba(42, 42, 42, 0.9);
+            padding: 8px 12px;
+            background: #2a2a2a;
             border: 1px solid #3a3a3a;
             border-radius: 6px;
-            color: #fff;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .code-btn:hover {
-            background: rgba(58, 58, 58, 0.9);
-            border-color: rgba(255, 140, 0, 0.5);
-            color: rgba(255, 140, 0, 0.9);
-        }
-        
-        .code-btn i {
-            font-size: 11px;
-        }
-        
-        .sensitive-data {
-            filter: blur(5px);
-            user-select: none;
-            transition: filter 0.3s;
-            display: inline-block;
-            cursor: pointer;
-        }
-        
-        .sensitive-data.revealed {
-            filter: blur(0) !important;
-        }
-        
-        /* Ensure blur works on Prism highlighted code */
-        code .sensitive-data,
-        pre .sensitive-data,
-        .token.string .sensitive-data,
-        span.sensitive-data {
-            filter: blur(5px) !important;
-            transition: filter 0.3s;
-        }
-        
-        code .sensitive-data.revealed,
-        pre .sensitive-data.revealed,
-        .token.string .sensitive-data.revealed,
-        span.sensitive-data.revealed {
-            filter: blur(0) !important;
-        }
-        
-        /* Apply blur to specific values after Prism processing */
-        code .token.string:has-text("AIzaSy"),
-        code .token.string:has-text("solaris-database-b5384"),
-        code .token.string:has-text("229880902004"),
-        code .token.string:has-text("G-27L86KFYG6") {
-            filter: blur(5px);
-        }
-        
-        .dev-database-info {
-            background: #2a2a2a;
-            border: 1px solid #3a3a3a;
-            border-radius: 8px;
-            padding: 20px;
-        }
-        
-        .dev-database-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .dev-database-title i {
-            color: #ffffff;
-        }
-        
-        .dev-database-structure {
-            color: #fff;
             font-size: 14px;
-            line-height: 1.8;
+            color: #fff;
         }
         
-        .dev-database-item {
-            margin-bottom: 12px;
-            padding-left: 20px;
-            position: relative;
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
         }
         
-        .dev-database-item::before {
-            content: "▸";
-            position: absolute;
-            left: 0;
-            color: rgba(255, 140, 0, 0.7);
+        .status-indicator.connected {
+            background: #22e41d;
+            box-shadow: 0 0 5px rgba(34, 228, 29, 0.5);
         }
         
-        .dev-database-label {
-            color: rgba(255, 140, 0, 0.9);
-            font-weight: 600;
-        }
-        
-        .dev-database-value {
-            color: #aaa;
-            font-family: 'Courier New', monospace;
-            margin-left: 8px;
-        }
-        
-        .dev-database-type {
-            color: #4a9eff;
-            font-family: 'Courier New', monospace;
-            margin-left: 8px;
+        .status-indicator.disconnected {
+            background: #ff0000;
         }
         
         @media (max-width: 768px) {
-            .dev-content {
-                grid-template-columns: 1fr;
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
             }
+            
+            .search-box {
+                min-width: auto;
+            }
+            
+            .filter-controls {
+                justify-content: center;
+            }
+            
+            .modal-content {
+                margin: 20px;
+                max-width: none;
+            }
+            
+            .table {
+                font-size: 14px;
+            }
+            
+            .table th, .table td {
+                padding: 10px 8px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            #homeCardsGrid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+        }
+
+        @media (max-width: 520px) {
+            #homeCardsGrid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        .home-card-editor {
+            color: rgba(255,255,255,0.92);
+        }
+
+        .home-card-editor.dragging {
+            opacity: 0.6;
+        }
+
+        .home-card-editor.drag-over {
+            border-color: rgba(255, 165, 0, 0.45) !important;
+            box-shadow: 0 0 0 1px rgba(255, 165, 0, 0.25) inset;
+        }
+
+        .home-card-editor.drop-before::before,
+        .home-card-editor.drop-after::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            bottom: 8px;
+            width: 4px;
+            border-radius: 999px;
+            background: rgba(255, 165, 0, 0.9);
+            box-shadow: 0 0 0 4px rgba(255, 165, 0, 0.15);
+        }
+
+        .home-card-editor.drop-before::before {
+            left: 8px;
+        }
+
+        .home-card-editor.drop-after::after {
+            right: 8px;
+        }
+
+        .home-card-editor input[type="file"] {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .home-card-editor input[type="file"]::file-selector-button {
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.14);
+            color: rgba(255,255,255,0.92);
+            border-radius: 10px;
+            padding: 8px 10px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .home-card-editor input[type="file"]::file-selector-button:hover {
+            background: rgba(255,255,255,0.14);
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
+        .image-row {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .image-preview {
+            width: 140px;
+            height: 88px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.10);
+            object-fit: cover;
+        }
+
+        .thumb-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .thumb-slot {
+            display: grid;
+            grid-template-columns: 1fr;
+            
+            gap: 10px;
+        }
+
+        .thumb-preview {
+            width: 100%;
+            height: 70px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.10);
+            object-fit: cover;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-cog"></i> Product Status Dashboard</h1>
-            <p>Manage product statuses remotely</p>
+            <h1><i class="fas fa-cog"></i> Product Management Dashboard</h1>
+            <p>Manage products, variants, and features</p>
         </div>
         
         <div class="content">
-            <div class="connection-status">
-                <span class="status-indicator disconnected" id="connectionIndicator"></span>
-                <span id="connectionText">Connecting to Firebase...</span>
+            <div class="controls">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search products...">
+                </div>
+                
+                <div class="filter-controls">
+                    <select id="statusFilter" class="filter-select">
+                        <option value="">All Statuses</option>
+                        <option value="UNKNOWN">Unknown</option>
+                        <option value="Undetected (Working)">Working</option>
+                        <option value="Updating (Not Working)">Updating</option>
+                        <option value="Detected (Not Working)">Detected</option>
+                        <option value="Maintenance">Maintenance</option>
+                    </select>
+
+                    <button type="button" class="btn btn-primary" id="addProductBtn">Add Product</button>
+                    
+                    <div class="connection-status">
+                        <span class="status-indicator disconnected" id="connectionIndicator"></span>
+                        <span id="connectionText">Connecting...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="homeCardsPanel" style="margin-bottom:16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                    <div>
+                        <h2 style="margin:0 0 4px 0;font-size:1.05rem;">Index Cards Preview</h2>
+                        <p style="margin:0;color:rgba(255,255,255,0.7);font-size:0.9rem;">Manage homepage cards (add/remove/reorder, images and titles).</p>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <button type="button" class="btn" id="addHomeCardBtn">Add Card</button>
+                        <button type="button" class="btn btn-primary" id="saveHomeCardsBtn">Save Index Cards</button>
+                    </div>
+                </div>
+
+                <div id="homeCardsGrid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:14px;"></div>
+
+                <div id="homeCardsHint" style="margin-top:10px;color:rgba(255,255,255,0.65);font-size:0.85rem;"></div>
             </div>
             
             <div id="productsContainer" class="loading">
                 <div class="loading-spinner"></div>
                 <p>Loading products...</p>
             </div>
+        </div>
+    </div>
+    
+    <!-- Edit Product Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Edit Product</div>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
             
-            <!-- Developer Section -->
-            <div class="dev-section">
-                <div class="dev-section-title">
-                    <i class="fas fa-code"></i>
-                    Developer Information
+            <div class="modal-body">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('basic')">Basic</button>
+                    <button class="tab" onclick="switchTab('images')">Images</button>
+                    <button class="tab" onclick="switchTab('variants')">Variants</button>
+                    <button class="tab" onclick="switchTab('features')">Features</button>
+                    <button class="tab" onclick="switchTab('badges')">Badges</button>
+                    <button class="tab" onclick="switchTab('metadata')">Metadata</button>
                 </div>
                 
-                <div class="dev-content">
-                    <!-- Firebase Config Code -->
-                    <div class="dev-code-box">
-                        <div class="code-actions">
-                            <button class="code-btn" id="revealBtn" onclick="toggleReveal()">
-                                <i class="fas fa-eye"></i> Reveal
-                            </button>
-                            <button class="code-btn" id="copyBtn" onclick="copyCode()">
-                                <i class="fas fa-copy"></i> Copy
+                <form id="editForm">
+                    <!-- Basic Tab -->
+                    <div id="basicTab" class="tab-content active">
+                        <div class="form-group">
+                            <label class="form-label">Product Name</label>
+                            <input type="text" id="productName" class="form-control" placeholder="Enter product name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select id="productStatus" class="form-control">
+                                <option value="UNKNOWN">UNKNOWN</option>
+                                <option value="Undetected (Working)">Undetected (Working)</option>
+                                <option value="Updating (Not Working)">Updating (Not Working)</option>
+                                <option value="Detected (Not Working)">Detected (Not Working)</option>
+                                <option value="Maintenance">Maintenance</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Sellhub Product ID</label>
+                            <input type="text" id="sellhubId" class="form-control" placeholder="Enter Sellhub Product ID">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Short Description</label>
+                            <input type="text" id="shortDescription" class="form-control" placeholder="Short description (shown on product pages)">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Video Showcase (YouTube URL)</label>
+                            <div style="display:grid;gap:10px;">
+                                <div style="display:flex;gap:10px;align-items:center;">
+                                    <input type="text" id="videoShowcaseUrl" class="form-control" placeholder="https://www.youtube.com/watch?v=... (optional)">
+                                    <button type="button" class="btn btn-sm btn-delete" onclick="clearVideoShowcase()">Clear</button>
+                                </div>
+                                <a id="videoShowcaseLink" href="#" target="_blank" rel="noopener noreferrer" style="display:none;text-decoration:none;">
+                                    <img id="videoShowcaseThumb" src="" alt="" style="width:100%;max-width:680px;aspect-ratio:16/9;object-fit:cover;border-radius:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);">
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="imagesTab" class="tab-content">
+                        <div class="form-group">
+                            <label class="form-label">Main Image</label>
+                            <div class="image-grid">
+                                <div class="image-row">
+                                    <img id="mainImagePreview" class="image-preview" src="" alt="">
+                                    <div style="display:grid;gap:10px;">
+                                        <input type="file" id="mainImageFile" class="form-control" accept="image/*">
+                                        <input type="text" id="mainImageUrl" class="form-control" placeholder="Main image URL (optional)">
+                                        <button type="button" class="btn btn-sm btn-delete" onclick="clearMainImage()">Clear</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Gallery Images (3)</label>
+                            <div class="thumb-grid">
+                                <div class="thumb-slot">
+                                    <img id="galleryPreview1" class="thumb-preview" src="" alt="">
+                                    <input type="file" id="galleryFile1" class="form-control" accept="image/*">
+                                    <input type="text" id="galleryUrl1" class="form-control" placeholder="Image URL #1 (optional)">
+                                    <button type="button" class="btn btn-sm btn-delete" onclick="clearGalleryImage(0)">Clear</button>
+                                </div>
+                                <div class="thumb-slot">
+                                    <img id="galleryPreview2" class="thumb-preview" src="" alt="">
+                                    <input type="file" id="galleryFile2" class="form-control" accept="image/*">
+                                    <input type="text" id="galleryUrl2" class="form-control" placeholder="Image URL #2 (optional)">
+                                    <button type="button" class="btn btn-sm btn-delete" onclick="clearGalleryImage(1)">Clear</button>
+                                </div>
+                                <div class="thumb-slot">
+                                    <img id="galleryPreview3" class="thumb-preview" src="" alt="">
+                                    <input type="file" id="galleryFile3" class="form-control" accept="image/*">
+                                    <input type="text" id="galleryUrl3" class="form-control" placeholder="Image URL #3 (optional)">
+                                    <button type="button" class="btn btn-sm btn-delete" onclick="clearGalleryImage(2)">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Variants Tab -->
+                    <div id="variantsTab" class="tab-content">
+                        <div class="form-group">
+                            <label class="form-label">Product Variants</label>
+                            <div id="variantsList" class="variants-list"></div>
+                            <button type="button" class="btn-add" onclick="addVariant()">
+                                <i class="fas fa-plus"></i> Add Variant
                             </button>
                         </div>
-                        <pre><code class="language-javascript" id="firebaseConfigCode">// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: <span class="sensitive-data blurred">"AIzaSyDolzQZPSdzWQiYbqjhlyNkjE9LrYxkb7E"</span>,
-  authDomain: <span class="sensitive-data blurred">"solaris-database-b5384.firebaseapp.com"</span>,
-  projectId: <span class="sensitive-data blurred">"solaris-database-b5384"</span>,
-  storageBucket: <span class="sensitive-data blurred">"solaris-database-b5384.firebasestorage.app"</span>,
-  messagingSenderId: <span class="sensitive-data blurred">"229880902004"</span>,
-  appId: <span class="sensitive-data blurred">"1:229880902004:web:34be022f36ac4157433c21"</span>,
-  measurementId: <span class="sensitive-data blurred">"G-27L86KFYG6"</span>
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
-// Initialize Firebase
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);</code></pre>
                     </div>
                     
-                    <!-- Database Structure -->
-                    <div class="dev-database-info">
-                        <div class="dev-database-title">
-                            <i class="fas fa-database"></i>
-                            Database Structure
+                    <!-- Features Tab -->
+                    <div id="featuresTab" class="tab-content">
+                        <div class="form-group">
+                            <label class="form-label">Product Features</label>
+                            <div id="featuresList" class="features-list"></div>
+                            <button type="button" class="btn-add" onclick="addFeature()">
+                                <i class="fas fa-plus"></i> Add Feature
+                            </button>
                         </div>
-                        <div class="dev-database-structure">
-                            <div class="dev-database-item">
-                                <span class="dev-database-label">Collection:</span>
-                                <span class="dev-database-value">productStatuses</span>
+                    </div>
+
+                    <!-- Badges Tab -->
+                    <div id="badgesTab" class="tab-content">
+                        <div class="form-group">
+                            <label class="form-label">Main Badges (under title)</label>
+                            <div id="mainBadgesList" class="variants-list"></div>
+                            <button type="button" class="btn-add" onclick="addMainBadge()">
+                                <i class="fas fa-plus"></i> Add Main Badge
+                            </button>
+                        </div>
+
+                        <details class="icon-legend" style="margin-top: 10px;">
+                            <summary style="cursor:pointer;color:#fff;font-weight:600;">Icon legend (Font Awesome classes)</summary>
+                            <div class="icon-legend-grid">
+                                <div class="icon-legend-item"><i class="fa-solid fa-layer-group"></i><code>fa-solid fa-layer-group</code></div>
+                                <div class="icon-legend-item"><i class="fas fa-check-circle"></i><code>fas fa-check-circle</code></div>
+                                <div class="icon-legend-item"><i class="fas fa-desktop"></i><code>fas fa-desktop</code></div>
+                                <div class="icon-legend-item"><i class="fas fa-lock"></i><code>fas fa-lock</code></div>
+                                <div class="icon-legend-item"><i class="fas fa-layer-group"></i><code>fas fa-layer-group</code></div>
+                                <div class="icon-legend-item"><i class="fas fa-microchip"></i><code>fas fa-microchip</code></div>
+                                <div class="icon-legend-item"><i class="fas fa-bolt"></i><code>fas fa-bolt</code></div>
+                                <div class="icon-legend-item"><i class="fas fa-brain"></i><code>fas fa-brain</code></div>
+                                <div class="icon-legend-item"><i class="fas fa-gamepad"></i><code>fas fa-gamepad</code></div>
+                                <div class="icon-legend-item"><i class="fas fa-shield-alt"></i><code>fas fa-shield-alt</code></div>
+                                <div class="icon-legend-item"><i class="fas fa-wrench"></i><code>fas fa-wrench</code></div>
+                                <div class="icon-legend-item"><i class="fas fa-exclamation-triangle"></i><code>fas fa-exclamation-triangle</code></div>
                             </div>
-                            <div class="dev-database-item">
-                                <span class="dev-database-label">Document IDs:</span>
-                                <span class="dev-database-value">permanent-spoofer</span>
-                            </div>
-                            <div class="dev-database-item">
-                                <span class="dev-database-value">temporary-spoofer</span>
-                            </div>
-                            <div class="dev-database-item">
-                                <span class="dev-database-value">rust</span>
-                            </div>
-                            <div class="dev-database-item">
-                                <span class="dev-database-value">black-ops-6</span>
-                            </div>
-                            <div class="dev-database-item">
-                                <span class="dev-database-value">fortnite-private</span>
-                            </div>
-                            <div class="dev-database-item">
-                                <span class="dev-database-value">fortnite-internal</span>
-                            </div>
-                            <div class="dev-database-item">
-                                <span class="dev-database-value">ai-aimbot</span>
-                            </div>
-                            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #3a3a3a;">
-                                <div class="dev-database-item">
-                                    <span class="dev-database-label">Field:</span>
-                                    <span class="dev-database-value">status</span>
-                                    <span class="dev-database-type">(string)</span>
-                                </div>
-                                <div class="dev-database-item">
-                                    <span class="dev-database-label">Field:</span>
-                                    <span class="dev-database-value">lastUpdated</span>
-                                    <span class="dev-database-type">(timestamp)</span>
-                                </div>
-                                <div class="dev-database-item">
-                                    <span class="dev-database-label">Field:</span>
-                                    <span class="dev-database-value">notes</span>
-                                    <span class="dev-database-type">(string)</span>
+                        </details>
+
+                        <div class="form-group" style="margin-top: 18px;">
+                            <label class="form-label">Tech Badges (above features)</label>
+                            <div id="techBadgesList" class="variants-list"></div>
+                            <button type="button" class="btn-add" onclick="addTechBadge()">
+                                <i class="fas fa-plus"></i> Add Tech Badge
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Metadata Tab -->
+                    <div id="metadataTab" class="tab-content">
+                        <div class="form-group">
+                            <label class="form-label">Meta Title</label>
+                            <input type="text" id="metaTitle" class="form-control" placeholder="Custom <title> for this product (optional)">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Meta Description</label>
+                            <textarea id="metaDescription" class="form-control" rows="4" placeholder="Custom meta description for this product (optional)"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeEditModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveProduct()">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Product Confirmation Modal -->
+    <div id="deleteProductModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Delete Product</div>
+                <button class="modal-close" onclick="closeDeleteProductModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div style="color: #ff6b6b; font-weight: 600; margin-bottom: 15px;">
+                    <i class="fas fa-exclamation-triangle"></i> This action cannot be undone!
+                </div>
+                <p>Are you sure you want to delete this product? All data including variants, features, and images will be permanently removed.</p>
+                
+                <div class="form-group" style="margin-top: 20px;">
+                    <label class="form-label">Type the product name to confirm deletion:</label>
+                    <input type="text" id="deleteProductConfirmInput" class="form-control" placeholder="Enter product name">
+                    <div id="deleteProductError" style="color: #ff6b6b; font-size: 14px; margin-top: 5px; display: none;"></div>
+                </div>
+                
+                <div style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 8px; padding: 15px; margin-top: 15px;">
+                    <strong>Product to delete:</strong>
+                    <div id="deleteProductName" style="font-weight: 600; color: #ff6b6b; margin-top: 5px;"></div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeDeleteProductModal()">Cancel</button>
+                <button type="button" class="btn btn-delete" onclick="confirmDeleteProduct()" disabled id="confirmDeleteBtn">
+                    <i class="fas fa-trash"></i> Delete Product
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Home Card Modal -->
+    <div id="editHomeCardModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="homeCardModalTitle">Edit Home Card</div>
+                <button class="modal-close" onclick="closeEditHomeCardModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <form id="editHomeCardForm">
+                    <div class="form-group">
+                        <label class="form-label">Card Title</label>
+                        <input type="text" id="homeCardTitle" class="form-control" placeholder="Enter card title">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Hash Link</label>
+                        <input type="text" id="homeCardHash" class="form-control" placeholder="Hash link (e.g. fortnite-cheats)">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Card Image</label>
+                        <div class="image-grid">
+                            <div class="image-row">
+                                <img id="homeCardImagePreview" class="image-preview" src="" alt="">
+                                <div style="display:grid;gap:10px;">
+                                    <input type="file" id="homeCardImageFile" class="form-control" accept="image/*">
+                                    <input type="text" id="homeCardImageUrl" class="form-control" placeholder="Image URL (optional)">
+                                    <button type="button" class="btn btn-sm btn-delete" onclick="clearHomeCardImage()">Clear</button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Products in this card</label>
+                        <div id="homeCardProductsList" class="variants-list" style="max-height: 300px; overflow-y: auto;"></div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeEditHomeCardModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveHomeCard()">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
             </div>
         </div>
     </div>
@@ -558,7 +1058,7 @@ const db = getFirestore(app);</code></pre>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         // Firebase Configuration
         const firebaseConfig = {
@@ -583,16 +1083,453 @@ const db = getFirestore(app);</code></pre>
         ];
 
         const PRODUCTS = [
-            { id: "permanent-spoofer", name: "Permanent Spoofer" },
-            { id: "temporary-spoofer", name: "Temporary Spoofer" },
-            { id: "rust", name: "Rust" },
-            { id: "black-ops-6", name: "Black Ops 6" },
-            { id: "fortnite-private", name: "Fortnite Private" },
-            { id: "fortnite-internal", name: "Fortnite Internal" },
-            { id: "ai-aimbot", name: "AI Aimbot" }
+            { id: "permanent-spoofer", name: "Permanent Spoofer", sellhubId: "494edb8b-3df5-4313-8f1c-3fd667cf46d2" },
+            { id: "temporary-spoofer", name: "Temporary Spoofer", sellhubId: "8b8d5707-ebc3-49c4-a694-e24936544964" },
+            { id: "rust", name: "Rust", sellhubId: "9c2beaad-b526-4723-a16d-354ed1f30a5f" },
+            { id: "black-ops-6", name: "Black Ops 6", sellhubId: "1758a4ca-8312-4c95-8197-85b41dae65af" },
+            { id: "fortnite-private", name: "Fortnite Private", sellhubId: "6e1a7433-af71-4f57-aab5-513c90052a62" },
+            { id: "fortnite-internal", name: "Fortnite Internal", sellhubId: "4ab503c0-5e60-4ba8-aab4-8cb17adca8b1" },
+            { id: "ai-aimbot", name: "AI Aimbot", sellhubId: "ff69e0aa-660c-4191-8235-63e508e3aa3a" }
         ];
 
-        let currentStatuses = {};
+        const DEFAULT_MAIN_IMAGE_BY_ID = {
+            'permanent-spoofer': '/products/images/spoofer.webp',
+            'temporary-spoofer': '/products/images/temp.webp',
+            'rust': '/products/images/rust.webp',
+            'black-ops-6': '/products/images/bo6.webp',
+            'fortnite-private': '/products/images/fortnite.webp',
+            'fortnite-internal': '/products/images/fortniteinternal.webp',
+            'ai-aimbot': '/images.home/aiaimbot.png'
+        };
+
+        function getDefaultMainImageUrl(productId) {
+            return DEFAULT_MAIN_IMAGE_BY_ID[productId] || '';
+        }
+
+        function normalizeStoredImageUrl(input) {
+            const value = (input || '').trim();
+            if (!value) return '';
+            if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value)) return value;
+            if (value.startsWith('/')) return value;
+            const cleaned = value.replace(/^\.+\//, '').replace(/^\/+/, '');
+            return '/' + cleaned;
+        }
+
+        function extractYouTubeVideoId(value) {
+            const raw = (value || '').trim();
+            if (!raw) return '';
+            const direct = raw.match(/^[a-zA-Z0-9_-]{11}$/);
+            if (direct) return direct[0];
+            try {
+                const url = new URL(raw);
+                const host = (url.hostname || '').toLowerCase();
+                if (host === 'youtu.be') {
+                    const id = (url.pathname || '').replace(/^\//, '').slice(0, 64);
+                    const m = id.match(/^[a-zA-Z0-9_-]{11}$/);
+                    return m ? m[0] : '';
+                }
+                if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+                    const v = url.searchParams.get('v');
+                    if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+                    const path = url.pathname || '';
+                    const embed = path.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
+                    if (embed) return embed[1];
+                    const shorts = path.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+                    if (shorts) return shorts[1];
+                }
+            } catch (e) {
+            }
+            return '';
+        }
+
+        function getYouTubeThumbUrl(videoId) {
+            const id = (videoId || '').trim();
+            if (!id) return '';
+            return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+        }
+
+        function getYouTubeWatchUrl(videoId) {
+            const id = (videoId || '').trim();
+            if (!id) return '';
+            return `https://www.youtube.com/watch?v=${id}`;
+        }
+
+        function updateVideoShowcasePreviewFromUrl(value) {
+            const id = extractYouTubeVideoId(value);
+            const link = document.getElementById('videoShowcaseLink');
+            const img = document.getElementById('videoShowcaseThumb');
+            if (!link || !img) return;
+            if (!id) {
+                link.style.display = 'none';
+                img.src = '';
+                link.href = '#';
+                return;
+            }
+            link.style.display = 'block';
+            img.src = getYouTubeThumbUrl(id);
+            link.href = getYouTubeWatchUrl(id);
+        }
+
+        const DEFAULT_PRODUCT_DATA = {
+            "ai-aimbot": {
+                productName: "AI Aimbot",
+                shortDescription: "AI-powered aim assistance with advanced machine learning algorithms for precision targeting.",
+                description: "",
+                sellhubId: "ff69e0aa-660c-4191-8235-63e508e3aa3a",
+                variants: [
+                    { name: "1 Week", price: "€19.99" },
+                    { name: "1 Month", price: "€39.99" },
+                    { name: "Lifetime", price: "€99.99" }
+                ],
+                features: [
+                    { name: "Aimbot", description: "AI-powered aim assistance with advanced tuning.", items: ["Aimbot","Pid Controller","Velocity Damping","Hybrid Aim","Legacy Proportional","Fov","Y-Axis Compensation","Deadzone radius","Smoothing","Aimkey","Confidence Threshold","Sensivity Factoring","Anti Recoil","Controller Supported"] },
+                    { name: "Triggerbot", description: "Automatic firing with configurable tolerance.", items: ["Enable/Disable","Trigger Delay","Triggerbot Tolerance","Trigger Key"] },
+                    { name: "Fine Tuning", description: "Precision controls for model behavior.", items: ["Fractional Accumulation","Near Center Auto Focus","Enable Easing Curve"] },
+                    { name: "Settings", description: "Quality-of-life and performance options.", items: ["Stretched Support","Stream Proof","Config System (Load / Save)","Frame Capture Method","Model Input Size","Fps Counter","Open CL"] },
+                    { name: "Supported Hardware (Optional)", description: "Optional external hardware support.", items: ["Kmbox Net/B+","Macku"] }
+                ],
+                mainBadges: [
+                    { text: "fortnite cheats", iconClass: "fa-solid fa-layer-group", className: "ccPackage_group" },
+                    { text: "Instant Delivery", iconClass: "fas fa-check-circle", className: "addStatusAfter" }
+                ],
+                techBadges: [
+                    { text: "Windows 10 & 11", iconClass: "fas fa-desktop", className: "features-os" },
+                    { text: "High Performance", iconClass: "fas fa-bolt", className: "features-performance" },
+                    { text: "Advanced AI Models", iconClass: "fas fa-brain", className: "features-security" },
+                    { text: "All GPU/CPU's", iconClass: "fas fa-microchip", className: "features-cpu" },
+                    { text: "Works On All Games", iconClass: "fas fa-gamepad", className: "features-games" }
+                ]
+            },
+            "rust": {
+                productName: "Rust",
+                shortDescription: "",
+                description: "",
+                sellhubId: "9c2beaad-b526-4723-a16d-354ed1f30a5f",
+                variants: [
+                    { name: "Day", price: "€6.99" },
+                    { name: "3 Days", price: "€14.99" },
+                    { name: "Week", price: "€24.99" },
+                    { name: "Month", price: "€34.99" },
+                    { name: "3 Months", price: "€59.99" }
+                ],
+                features: [
+                    { name: "Aimbot", description: "Precision targeting tools for every situation.", items: ["Aim Enabled","Patrol Helicopter Aim","Aim Smoothing","Bone Selection","Recoil Control","Silent Aim"] },
+                    { name: "Visuals", description: "Clear visibility of players, NPCs and teammates.", items: ["Skeleton","Show NPCs","Show Sleepers","Player ESP Distance","Teammate ESP","Belt ESP"] },
+                    { name: "Item ESP", description: "Comprehensive loot and resource tracking across the map.", items: ["World ESP","Stone / Metal / Sulfur ESP","Show Only with Pickaxe","Crate ESP","Animal ESP (including jungle)","Barrel ESP","Copters ESP / Patrol ESP / Bradley ESP","Vehicle ESP","Dropped Item & Weapon ESP","Hemp ESP","Traps ESP","Bright Night / Bright Caves"] },
+                    { name: "Misc", description: "Movement enhancements and combat-focused tweaks.", items: ["Spider Movement","Hide Grass","Hide Player Building","Hide Water","Combat Mode","Instant Eoka","Nospread"] }
+                ],
+                mainBadges: [
+                    { text: "Rust cheats", iconClass: "fa-solid fa-layer-group", className: "ccPackage_group" },
+                    { text: "Instant Delivery", iconClass: "fas fa-check-circle", className: "addStatusAfter" }
+                ],
+                techBadges: [
+                    { text: "Windows 10 & 11", iconClass: "fas fa-desktop", className: "features-os" },
+                    { text: "Fully Undetected", iconClass: "fas fa-lock", className: "features-security" },
+                    { text: "External Software", iconClass: "fas fa-layer-group", className: "features-performance" },
+                    { text: "Intel & AMD CPUs", iconClass: "fas fa-microchip", className: "features-cpu" }
+                ]
+            },
+            "permanent-spoofer": {
+                productName: "Permanent Spoofer",
+                shortDescription: "",
+                description: "",
+                sellhubId: "494edb8b-3df5-4313-8f1c-3fd667cf46d2",
+                variants: [
+                    { name: "One-Time (24h)", price: "€19.99" },
+                    { name: "Lifetime", price: "€49.99" }
+                ],
+                features: [
+                    { name: "Spoofing", description: "Spoofing Details & Informations", items: ["Persistent Spoofing - No HWID resets after Windows reinstall","GPU Spoofing - Works across NVIDIA & AMD GPUs","TPM Spoofing (Safe In Fortnite Tournaments)","Permanent Ethernet Spoofing - No need for adapter resets","HYPER-V Spoofing - Full virtualization spoofing","Tourney-Safe Support - Works with competitive environments","Win10 & Win11 Support - Fully compatible"] },
+                    { name: "Features", description: "Advanced Product Features", items: ["SMBIOS Fixer - Full serial & UUID spoofing","Clean UI & User-Friendly Layout","Undetected Disk Spoofing - Stays even after reboot","No RAID0 Required","Supports Every Motherboard","Customized Serial Generation for Each System","Built-in EFI Spoofing","Custom EFI for Every User","Advanced Driver Loading & Seeding System","Seeding-Based Serials"] },
+                    { name: "Services", description: "Support & Services in the package.", items: ["Instant Delivery","24/7 Customer Support","Detailed instructions & Video tutorial","One Click Unbans - Automated","TPM Bypass","IP Ban Fix","Customer Community Chat","Anydesk support provided"] }
+                ],
+                mainBadges: [
+                    { text: "Permanent HWID Spoofer", iconClass: "fa-solid fa-layer-group", className: "ccPackage_group" },
+                    { text: "Instant Delivery", iconClass: "fas fa-check-circle", className: "addStatusAfter" }
+                ],
+                techBadges: [
+                    { text: "Windows 10 & 11", iconClass: "fas fa-desktop", className: "features-os" },
+                    { text: "HWID Spoofer", iconClass: "fas fa-lock", className: "features-security" },
+                    { text: "S.M.A.R.T System", iconClass: "fas fa-layer-group", className: "features-performance" },
+                    { text: "All Motherboards", iconClass: "fas fa-microchip", className: "features-cpu" }
+                ]
+            },
+            "temporary-spoofer": {
+                productName: "Temporary Spoofer",
+                shortDescription: "",
+                description: "",
+                sellhubId: "8b8d5707-ebc3-49c4-a694-e24936544964",
+                variants: [
+                    { name: "Day", price: "€4.99" },
+                    { name: "Week", price: "€14.99" },
+                    { name: "Month", price: "€29.99" },
+                    { name: "3 Month", price: "€49.99" }
+                ],
+                features: [
+                    { name: "Spoofing", description: "Spoofing Details & Informations", items: ["Persistent Spoofing - No HWID resets after Windows reinstall","GPU Spoofing - Works across NVIDIA & AMD GPUs","TPM Spoofing (Safe In Fortnite Tournaments)","Permanent Ethernet Spoofing - No need for adapter resets","HYPER-V Spoofing - Full virtualization spoofing","Tourney-Safe Support - Works with competitive environments","Win10 & Win11 Support - Fully compatible"] },
+                    { name: "Features", description: "Advanced Temporary Spoofer Features", items: ["Fortnite Tournament cleaner","TPM Spoofing (Safe In Fortnite Tournaments)","Configurable Spoofing","Built-in Cleaner","Built-in Serial Checker","Changes all hardware identifiers","Changes all components","Seeding system","A lot more features"] },
+                    { name: "Services", description: "Support & Services in the package.", items: ["Instant Delivery","24/7 Customer Support","Detailed instructions & Video tutorial","One Click Unbans - Automated","TPM Bypass","IP Ban Fix","Customer Community Chat","Anydesk support provided"] }
+                ],
+                mainBadges: [
+                    { text: "Temporary HWID Spoofer", iconClass: "fa-solid fa-layer-group", className: "ccPackage_group" },
+                    { text: "Instant Delivery", iconClass: "fas fa-check-circle", className: "addStatusAfter" }
+                ],
+                techBadges: [
+                    { text: "Windows 10 & 11", iconClass: "fas fa-desktop", className: "features-os" },
+                    { text: "HWID Spoofer", iconClass: "fas fa-lock", className: "features-security" },
+                    { text: "S.M.A.R.T System", iconClass: "fas fa-layer-group", className: "features-performance" },
+                    { text: "All Motherboards", iconClass: "fas fa-microchip", className: "features-cpu" }
+                ]
+            },
+            "fortnite-private": {
+                productName: "Fortnite Private",
+                shortDescription: "",
+                description: "",
+                sellhubId: "6e1a7433-af71-4f57-aab5-513c90052a62",
+                variants: [
+                    { name: "Day", price: "€9.99" },
+                    { name: "3 Days", price: "€19.99" },
+                    { name: "Week", price: "€29.99" },
+                    { name: "Month", price: "€54.99" },
+                    { name: "Lifetime", price: "€299.99" }
+                ],
+                features: [
+                    { name: "Visuals", description: "Full control over ESP and visibility of enemies.", items: ["Box","Cornered Box","Filled Box","Distance","Skeleton","Platform","Head Dot","Aim Line","Snaplines","Name","Held Weapon","Rank","Snapline","Bot Check","Team Check","Skeleton Thickness"] },
+                    { name: "Aimbot", description: "Precise aiming tools for every weapon.", items: ["Individual Weapon Type Configs","Memory Aim","Fov Circle","Target Switch Delay","Visibility Check","Raytrace Visibility Check","Aimkey","Aim Prediction","Ignore Knocked","Aim Bone","Random Aim Bone","Fov Size","Smoothing","Distance","Controller Supported"] },
+                    { name: "Item ESP", description: "Full control over loot and resources on the map.", items: ["Enable/Disable","Vehicles","Chests","Ammo Boxes","Floor Loot","Vehicles Distance","Chests Distance","Ammo Boxes Distance","Floor Loot Distance"] },
+                    { name: "Triggerbot", description: "Automatic reactions to enemies in the field of view.", items: ["Enabled","Hitbox (Head, Neck, Chest, Pelvis)","Delay","Keybind"] },
+                    { name: "Misc", description: "Additional tools and comfort settings.", items: ["Stretched Support","Stream Proof","Config System (Load / Save)","Controller Support","Vsync","Fps Counter"] }
+                ],
+                mainBadges: [
+                    { text: "fortnite cheats", iconClass: "fa-solid fa-layer-group", className: "ccPackage_group" },
+                    { text: "Instant Delivery", iconClass: "fas fa-check-circle", className: "addStatusAfter" }
+                ],
+                techBadges: [
+                    { text: "Windows 10 & 11", iconClass: "fas fa-desktop", className: "features-os" },
+                    { text: "Fully Undetected", iconClass: "fas fa-lock", className: "features-security" },
+                    { text: "External Software", iconClass: "fas fa-layer-group", className: "features-performance" },
+                    { text: "Intel & AMD CPUs", iconClass: "fas fa-microchip", className: "features-cpu" }
+                ]
+            },
+            "fortnite-internal": {
+                productName: "Fortnite Internal",
+                shortDescription: "",
+                description: "",
+                sellhubId: "4ab503c0-5e60-4ba8-aab4-8cb17adca8b1",
+                variants: [
+                    { name: "3 Days", price: "€11.99" },
+                    { name: "Week", price: "€24.99" },
+                    { name: "Month", price: "€49.99" },
+                    { name: "Lifetime", price: "€199.99" }
+                ],
+                features: [
+                    { name: "Aimbot", description: "Precision aim assistance with customizable options.", items: ["Silent Aim","Memory Aim","Enable Silent Keybind","Primary Keybind","Enable Second Bind","Secondary Keybind","Smoothing","Prediction","Silent Spread","Silent Hit Chance","Target Bone (Head, Neck, Chest, Closest Bone)","FOV Size","Show FOV Circle","Aim Lock","Visibility Check","Ignore Knocked"] },
+                    { name: "Triggerbot", description: "Automatic reactions to enemies in the field of view.", items: ["Enable Triggerbot","Triggerbot Type (Hold, Toggle, Always On)","Triggerbot Keybind","Shotgun Only"] },
+                    { name: "Players", description: "Enhanced visualization of players and entities.", items: ["Enabled (F2)","Draw Self","Max Distance","Chams","Wireframe","Box","Corner Box","Box Fill","Fill Opacity","Name","Distance","Weapon Name","Weapon Ammo","Skeleton","Head Dot","Chinese Hat","Visible Color","Invisible Color","Fov Color"] },
+                    { name: "World", description: "Full control over loot and resources on the map.", items: ["Category (Loot Items, Chests, Ammo Boxes, Vehicles, Llama)","Enabled","Show Distance","Show Text","Show Dot","Max Distance","Minimum Rarity (for Loot Items)"] },
+                    { name: "Radar", description: "Enhanced radar visualization.", items: ["Enabled","Size","Range","Opacity","Player Icon (Triangles, Circles, Squares)","Player Size","Show Distance","Player Outline","Player Fill","Player Shadow"] },
+                    { name: "Misc", description: "Additional tools and comfort settings.", items: ["Draw Batching","Config Name","Skin Changer","Stream Proof"] }
+                ],
+                mainBadges: [
+                    { text: "fortnite cheats", iconClass: "fa-solid fa-layer-group", className: "ccPackage_group" },
+                    { text: "Instant Delivery", iconClass: "fas fa-check-circle", className: "addStatusAfter" }
+                ],
+                techBadges: [
+                    { text: "Windows 10 & 11", iconClass: "fas fa-desktop", className: "features-os" },
+                    { text: "Fully Undetected", iconClass: "fas fa-lock", className: "features-security" },
+                    { text: "Internal Client", iconClass: "fas fa-layer-group", className: "features-performance" },
+                    { text: "Intel & AMD CPUs", iconClass: "fas fa-microchip", className: "features-cpu" }
+                ]
+            },
+            "black-ops-6": {
+                productName: "Black Ops 6",
+                shortDescription: "",
+                description: "",
+                sellhubId: "1758a4ca-8312-4c95-8197-85b41dae65af",
+                variants: [
+                    { name: "Day", price: "€4.99" },
+                    { name: "3 Days", price: "€9.99" },
+                    { name: "Week", price: "€14.99" },
+                    { name: "Month", price: "€29.99" },
+                    { name: "Lifetime", price: "€99.99" }
+                ],
+                features: [
+                    { name: "Aimbot", description: "Precise control of the target and advanced shooting options.", items: ["Toggle Aimbot Functionality","Customizable Aim Keybind","Adjustable Aim FOV (1°–180°)","Bone Selection: Helmet / Head / Neck / Chest / Pelvis / Any","Smoothing Control Slider (0–100)","Auto Fire Capability","Aim Target Override Keybind","Override Bone","Sticky Aimbot","Target Filtering: Friendly / Downed / Self-Reviving / AI","Visibility Check","Targeting Method: Smart / FOV / Distance","FOV Type: Affected / Independent","Max Targeting Distance Slider","Recoil Control Slider (0–100%)","Target Prediction","Miss Chance Customization","Aim Target Visualization (Custom Colors)"] },
+                    { name: "Visuals", description: "Advanced ESP and full visibility of enemies and allies.", items: ["Player ESP","Box ESP (Visibility-Based Coloring)","Player Name ESP","Weapon Info ESP","Distance Indicator ESP","Kills / Deaths ESP","Team ID ESP","Health Bar ESP","Skeleton ESP (Custom Colors)","Visibility Check","Field of View Adjustment","Gun Outline (Color & Width Control)","FOV Circle Visualization","Custom Crosshair","Spectator Count Display","Player Outlines: Fill Option / Width Slider","Bullet Tracers: Color / Thickness / Fade Duration","Threat Warning FOV Slider"] },
+                    { name: "Compass", description: "Personalized tactical compass with warnings.", items: ["Customizable Compass System","Compass Zoom Slider","Compass Arrow Size Slider","Compass Fill Option","Warning Indicators","Color Customization: Visible / Invisible"] },
+                    { name: "Item ESP", description: "Detailed preview of loot, contracts and equipment.", items: ["Enable Loot ESP","Ammo ESP","Weapons ESP","Money ESP","Armor Plates ESP","Supply Box ESP (Favorite Option)","Gas Masks ESP","Lethals & Tacticals ESP","Equipment ESP","Miscellaneous Items ESP","Buy Stations / Scanners ESP","Contracts / Ziplines ESP","Easter Eggs / Traps ESP","Loot Bounds 3D","Loot Display Distance Slider"] },
+                    { name: "Zombie Support", description: "Dedicated support for the zombie mode and PvE.", items: ["Aimkey and Secondary Aimkey","Enable Aimbot for Players","Enable Aimbot for Zombies","Smoothness","Aimbot Distance","Bone Select"] },
+                    { name: "RGB Settings", description: "Visual RGB effects for interface elements.", items: ["Apply RGB to All Visuals","2D Box / Corner Box","Skeleton / Crosshair"] },
+                    { name: "Misc", description: "Configurable additional settings and QoL.", items: ["1 to 10 Save Settings","Stream Proof","Menu Key","Save / Load Setting","Loader Color Customize"] }
+                ],
+                mainBadges: [
+                    { text: "Black Ops 6 cheats", iconClass: "fa-solid fa-layer-group", className: "ccPackage_group" },
+                    { text: "Instant Delivery", iconClass: "fas fa-check-circle", className: "addStatusAfter" }
+                ],
+                techBadges: [
+                    { text: "Windows 10 & 11", iconClass: "fas fa-desktop", className: "features-os" },
+                    { text: "Fully Undetected", iconClass: "fas fa-lock", className: "features-security" },
+                    { text: "External Software", iconClass: "fas fa-layer-group", className: "features-performance" },
+                    { text: "Intel & AMD CPUs", iconClass: "fas fa-microchip", className: "features-cpu" }
+                ]
+            }
+        };
+
+        let currentProducts = [];
+        let filteredProducts = [];
+        let currentEditingProduct = null;
+
+        function normalizeFeatures(features) {
+            if (!Array.isArray(features)) return [];
+            return features.map(feature => {
+                if (!feature || typeof feature !== 'object') {
+                    return { name: '', description: '', items: [] };
+                }
+                const name = typeof feature.name === 'string' ? feature.name : '';
+                const description = typeof feature.description === 'string' ? feature.description : '';
+                const items = Array.isArray(feature.items) ? feature.items.filter(item => typeof item === 'string') : [];
+                return { name, description, items };
+            }).filter(feature => feature.name.trim() !== '');
+        }
+
+        function normalizeBadges(badges) {
+            if (!Array.isArray(badges)) return [];
+            return badges.map(badge => {
+                if (!badge || typeof badge !== 'object') {
+                    return { text: '', iconClass: '', className: '' };
+                }
+                const text = typeof badge.text === 'string' ? badge.text : '';
+                const iconClass = typeof badge.iconClass === 'string' ? badge.iconClass : '';
+                const className = typeof badge.className === 'string' ? badge.className : '';
+                return { text, iconClass, className };
+            }).filter(badge => badge.text.trim() !== '');
+        }
+
+        async function ensureDefaultsInFirestore(docDataById) {
+            const writeTasks = [];
+
+            PRODUCTS.forEach(product => {
+                const defaults = DEFAULT_PRODUCT_DATA[product.id];
+                if (!defaults) return;
+
+                const existing = docDataById[product.id] || null;
+                const patch = {};
+
+                if (!existing || existing.productName === undefined) patch.productName = defaults.productName;
+                if (!existing || existing.shortDescription === undefined) patch.shortDescription = defaults.shortDescription;
+                if (!existing || existing.description === undefined) patch.description = defaults.description;
+                if (!existing || existing.sellhubId === undefined) patch.sellhubId = defaults.sellhubId;
+                if (!existing || existing.variants === undefined) patch.variants = defaults.variants;
+                if (!existing || existing.features === undefined) patch.features = defaults.features;
+                if (!existing || existing.mainBadges === undefined) patch.mainBadges = defaults.mainBadges;
+                if (!existing || existing.techBadges === undefined) patch.techBadges = defaults.techBadges;
+
+                const defaultMain = getDefaultMainImageUrl(product.id);
+                const existingMain = existing && typeof existing.mainImageUrl === 'string' ? existing.mainImageUrl.trim() : '';
+                const normalizedMain = normalizeStoredImageUrl(existingMain);
+                if (!existing || existing.mainImageUrl === undefined) {
+                    patch.mainImageUrl = defaultMain;
+                } else if (existingMain && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(existingMain) && !existingMain.startsWith('/')) {
+                    patch.mainImageUrl = normalizedMain;
+                }
+                if (!existing || existing.galleryImageUrls === undefined) patch.galleryImageUrls = [];
+
+                if (!existing || existing.mainImageDataUrl === undefined) patch.mainImageDataUrl = '';
+                if (!existing || existing.galleryImageDataUrls === undefined) patch.galleryImageDataUrls = [];
+
+                if (!existing || existing.videoShowcaseUrl === undefined) patch.videoShowcaseUrl = '';
+                if (!existing || existing.metaTitle === undefined) patch.metaTitle = '';
+                if (!existing || existing.metaDescription === undefined) patch.metaDescription = '';
+
+                if (Object.keys(patch).length === 0) return;
+
+                patch.lastUpdated = new Date().toISOString();
+                patch.updatedBy = 'system-defaults';
+
+                const productRef = doc(db, "productStatuses", product.id);
+                writeTasks.push(setDoc(productRef, patch, { merge: true }));
+            });
+
+            if (writeTasks.length === 0) return;
+            await Promise.all(writeTasks);
+        }
+
+        const FORCE_RESET_VARIANTS_KEY = 'dashboard_force_reset_variants_v1';
+        const FORCE_RESET_FEATURES_KEY = 'dashboard_force_reset_features_v1';
+
+        async function forceResetVariantsToDefaultsOnce(productIds, docDataById) {
+            try {
+                const alreadyDone = localStorage.getItem(FORCE_RESET_VARIANTS_KEY);
+                if (alreadyDone === 'true') return;
+            } catch (e) {}
+
+            const ids = Array.isArray(productIds) ? productIds : [];
+            const tasks = [];
+
+            ids.forEach(productId => {
+                const defaults = DEFAULT_PRODUCT_DATA[productId];
+                if (!defaults || !Array.isArray(defaults.variants)) return;
+
+                const productRef = doc(db, "productStatuses", productId);
+                tasks.push(setDoc(productRef, {
+                    variants: defaults.variants,
+                    lastUpdated: new Date().toISOString(),
+                    updatedBy: 'admin-reset-variants'
+                }, { merge: true }).then(() => {
+                    if (docDataById && docDataById[productId]) {
+                        docDataById[productId].variants = defaults.variants;
+                    }
+                }));
+            });
+
+            if (tasks.length === 0) return;
+
+            const results = await Promise.allSettled(tasks);
+            const allOk = results.every(r => r.status === 'fulfilled');
+
+            if (allOk) {
+                try {
+                    localStorage.setItem(FORCE_RESET_VARIANTS_KEY, 'true');
+                } catch (e) {}
+            }
+        }
+
+        async function forceResetFeaturesToDefaultsOnce(productIds, docDataById) {
+            try {
+                const alreadyDone = localStorage.getItem(FORCE_RESET_FEATURES_KEY);
+                if (alreadyDone === 'true') return;
+            } catch (e) {}
+
+            const ids = Array.isArray(productIds) ? productIds : [];
+            const tasks = [];
+
+            ids.forEach(productId => {
+                const defaults = DEFAULT_PRODUCT_DATA[productId];
+                if (!defaults || !Array.isArray(defaults.features)) return;
+
+                const productRef = doc(db, "productStatuses", productId);
+                tasks.push(setDoc(productRef, {
+                    features: defaults.features,
+                    lastUpdated: new Date().toISOString(),
+                    updatedBy: 'admin-reset-features'
+                }, { merge: true }).then(() => {
+                    if (docDataById && docDataById[productId]) {
+                        docDataById[productId].features = defaults.features;
+                    }
+                }));
+            });
+
+            if (tasks.length === 0) return;
+
+            const results = await Promise.allSettled(tasks);
+            const allOk = results.every(r => r.status === 'fulfilled');
+
+            if (allOk) {
+                try {
+                    localStorage.setItem(FORCE_RESET_FEATURES_KEY, 'true');
+                } catch (e) {}
+            }
+        }
 
         function showNotification(message, type = 'success') {
             const notification = document.getElementById('notification');
@@ -609,153 +1546,1392 @@ const db = getFirestore(app);</code></pre>
             
             if (connected) {
                 indicator.className = 'status-indicator connected';
-                text.textContent = 'Connected to Firebase';
+                text.textContent = 'Connected';
             } else {
                 indicator.className = 'status-indicator disconnected';
-                text.textContent = 'Disconnected from Firebase';
+                text.textContent = 'Disconnected';
             }
         }
 
-        function getStatusConfig(statusValue) {
-            return STATUS_OPTIONS.find(s => s.value === statusValue) || STATUS_OPTIONS[0];
+        function getStatusClass(status) {
+            const statusMap = {
+                'UNKNOWN': 'status-unknown',
+                'Undetected (Working)': 'status-working',
+                'Updating (Not Working)': 'status-updating',
+                'Detected (Not Working)': 'status-detected',
+                'Maintenance': 'status-maintenance'
+            };
+            return statusMap[status] || 'status-unknown';
         }
 
-        function renderProductCard(product, currentStatus) {
-            const statusConfig = getStatusConfig(currentStatus || 'UNKNOWN');
+        function renderProductsTable() {
+            const container = document.getElementById('productsContainer');
+            container.classList.remove('loading');
             
-            return `
-                <div class="product-card" data-product-id="${product.id}">
-                    <div class="product-name">
-                        ${product.name}
-                        <span class="product-id">${product.id}</span>
+            if (filteredProducts.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-box-open"></i>
+                        <h3>No products found</h3>
+                        <p>Try adjusting your search or filter criteria</p>
                     </div>
-                    
-                    <div class="status-section">
-                        <div class="status-label">Current Status</div>
-                        <div class="current-status" style="background: ${statusConfig.bg}; color: ${statusConfig.color};">
-                            <i class="fas ${statusConfig.icon}"></i> ${currentStatus || 'UNKNOWN'}
-                        </div>
-                    </div>
-                    
-                    <div class="status-section">
-                        <div class="status-label">Change Status</div>
-                        <select class="status-select" data-product-id="${product.id}">
-                            ${STATUS_OPTIONS.map(option => 
-                                `<option value="${option.value}" ${(currentStatus || 'UNKNOWN') === option.value ? 'selected' : ''}>
-                                    ${option.label}
-                                </option>`
-                            ).join('')}
-                        </select>
-                    </div>
-                    
-                    <button class="save-btn" onclick="saveStatus('${product.id}')" data-product-id="${product.id}">
-                        <i class="fas fa-save"></i> Save Changes
-                    </button>
+                `;
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="products-table">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Status</th>
+                                <th>Sellhub ID</th>
+                                <th>Variants</th>
+                                <th>Last Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filteredProducts.map(product => `
+                                <tr>
+                                    <td>
+                                        <strong>${product.productName || product.name}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge ${getStatusClass(product.status)}">
+                                            <i class="fas fa-circle" style="font-size: 8px;"></i>
+                                            ${product.status}
+                                        </span>
+                                    </td>
+                                    <td><code style="font-size: 12px;">${product.sellhubId || 'N/A'}</code></td>
+                                    <td>${product.variants ? product.variants.length : 0}</td>
+                                    <td>${product.lastUpdated ? new Date(product.lastUpdated).toLocaleDateString() : 'Never'}</td>
+                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-sm btn-edit" onclick="editProduct('${product.id}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-view" onclick="viewProduct('${product.id}')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-delete" onclick="deleteProduct('${product.id}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
             `;
         }
 
-        function renderProducts() {
-            const container = document.getElementById('productsContainer');
+        function filterProducts() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
             
-            if (Object.keys(currentStatuses).length === 0) {
-                container.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Ładowanie produktów...</p></div>';
+            filteredProducts = currentProducts.filter(product => {
+                const nameValue = (product.productName || product.name || '').toLowerCase();
+                const matchesSearch = nameValue.includes(searchTerm) ||
+                                    product.id.toLowerCase().includes(searchTerm);
+                const matchesStatus = !statusFilter || product.status === statusFilter;
+                
+                return matchesSearch && matchesStatus;
+            });
+            
+            renderProductsTable();
+        }
+
+        window.editProduct = function(productId) {
+            const product = currentProducts.find(p => p.id === productId);
+            if (!product) return;
+            
+            currentEditingProduct = product;
+            document.getElementById('modalTitle').textContent = `Edit ${product.productName || product.name}`;
+            document.getElementById('productName').value = product.productName || product.name || '';
+            document.getElementById('productStatus').value = product.status || 'UNKNOWN';
+            document.getElementById('sellhubId').value = product.sellhubId || '';
+            document.getElementById('shortDescription').value = product.shortDescription || '';
+            document.getElementById('videoShowcaseUrl').value = product.videoShowcaseUrl || '';
+            updateVideoShowcasePreviewFromUrl(product.videoShowcaseUrl || '');
+            document.getElementById('metaTitle').value = product.metaTitle || '';
+            document.getElementById('metaDescription').value = product.metaDescription || '';
+
+            const gallery = Array.isArray(product.galleryImageUrls) ? product.galleryImageUrls : [];
+            const galleryData = Array.isArray(product.galleryImageDataUrls) ? product.galleryImageDataUrls : [];
+            const mainDataUrl = typeof product.mainImageDataUrl === 'string' ? product.mainImageDataUrl : '';
+            const mainUrl = normalizeStoredImageUrl((product.mainImageUrl || '').trim());
+            document.getElementById('mainImageUrl').value = mainUrl;
+            document.getElementById('galleryUrl1').value = gallery[0] || '';
+            document.getElementById('galleryUrl2').value = gallery[1] || '';
+            document.getElementById('galleryUrl3').value = gallery[2] || '';
+
+            pendingImageDataUrls.main = mainDataUrl;
+            pendingImageDataUrls.gallery = [galleryData[0] || '', galleryData[1] || '', galleryData[2] || ''];
+            pendingImageClearFlags.main = false;
+            pendingImageClearFlags.gallery = [false, false, false];
+
+            setPreviewImage('mainImagePreview', mainDataUrl || mainUrl);
+            setPreviewImage('galleryPreview1', pendingImageDataUrls.gallery[0] || gallery[0] || '');
+            setPreviewImage('galleryPreview2', pendingImageDataUrls.gallery[1] || gallery[1] || '');
+            setPreviewImage('galleryPreview3', pendingImageDataUrls.gallery[2] || gallery[2] || '');
+
+            const mainFileEl = document.getElementById('mainImageFile');
+            const galleryFile1 = document.getElementById('galleryFile1');
+            const galleryFile2 = document.getElementById('galleryFile2');
+            const galleryFile3 = document.getElementById('galleryFile3');
+            if (mainFileEl) mainFileEl.value = '';
+            if (galleryFile1) galleryFile1.value = '';
+            if (galleryFile2) galleryFile2.value = '';
+            if (galleryFile3) galleryFile3.value = '';
+            
+            renderVariants(product.variants || []);
+            renderFeatures(product.features || []);
+            renderBadges(product.mainBadges || [], product.techBadges || []);
+            
+            document.getElementById('editModal').style.display = 'block';
+        };
+
+        window.switchTab = function(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        };
+
+        window.clearMainImage = function() {
+            pendingImageClearFlags.main = true;
+            pendingImageDataUrls.main = '';
+            const mainFile = document.getElementById('mainImageFile');
+            const mainUrl = document.getElementById('mainImageUrl');
+            if (mainFile) mainFile.value = '';
+            if (mainUrl) mainUrl.value = '';
+            setPreviewImage('mainImagePreview', '');
+        };
+
+        window.clearGalleryImage = function(index) {
+            const idx = typeof index === 'number' ? index : 0;
+            if (idx < 0 || idx > 2) return;
+            pendingImageClearFlags.gallery[idx] = true;
+            pendingImageDataUrls.gallery[idx] = '';
+            const fileEl = document.getElementById(`galleryFile${idx + 1}`);
+            const urlEl = document.getElementById(`galleryUrl${idx + 1}`);
+            if (fileEl) fileEl.value = '';
+            if (urlEl) urlEl.value = '';
+            setPreviewImage(`galleryPreview${idx + 1}`, '');
+        };
+
+        window.clearVideoShowcase = function() {
+            const input = document.getElementById('videoShowcaseUrl');
+            if (input) input.value = '';
+            updateVideoShowcasePreviewFromUrl('');
+        };
+
+        document.addEventListener('input', (e) => {
+            const target = e.target;
+            if (!target || target.getAttribute('data-field') !== 'iconClass') return;
+            const badgeItem = target.closest('.badge-item');
+            if (!badgeItem) return;
+            const preview = badgeItem.querySelector('[data-role="icon-preview"] i');
+            if (!preview) return;
+            preview.className = target.value || '';
+        });
+
+        function renderVariants(variants) {
+            const container = document.getElementById('variantsList');
+            container.innerHTML = variants.map((variant, index) => `
+                <div class="variant-item">
+                    <input type="text" class="form-control variant-input" placeholder="Variant name" value="${variant.name}" data-index="${index}" data-field="name">
+                    <input type="text" class="form-control variant-input variant-price" placeholder="Price" value="${variant.price}" data-index="${index}" data-field="price">
+                    <button type="button" class="btn-remove" onclick="removeVariant(${index})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderFeatures(features) {
+            const container = document.getElementById('featuresList');
+            container.innerHTML = features.map((feature, index) => `
+                <div class="feature-item" style="display:block;">
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <input type="text" class="form-control variant-input" placeholder="Feature category" value="${feature.name || ''}" data-index="${index}" data-field="name">
+                        <input type="text" class="form-control variant-input" placeholder="Feature description" value="${feature.description || ''}" data-index="${index}" data-field="description">
+                        <button type="button" class="btn-remove" onclick="removeFeature(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div style="margin-top: 10px; padding-left: 0;">
+                        <div style="color:#aaa;font-size:13px;margin-bottom:8px;">Feature list</div>
+                        <div class="feature-items" data-feature-index="${index}">
+                            ${(Array.isArray(feature.items) ? feature.items : ['']).map((itemText, itemIndex) => `
+                                <div class="variant-item" style="margin-bottom:8px;">
+                                    <input type="text" class="form-control variant-input" placeholder="• bullet" value="${itemText || ''}" data-feature-index="${index}" data-item-index="${itemIndex}" data-field="item">
+                                    <button type="button" class="btn-remove" onclick="removeFeatureItem(${index}, ${itemIndex})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="margin-top:8px;">
+                            <button type="button" class="btn-add" onclick="addFeatureItem(${index})" style="padding:6px 10px;font-size:12px;">
+                                <i class="fas fa-plus"></i> Add bullet
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderBadges(mainBadges, techBadges) {
+            renderMainBadges(mainBadges);
+            renderTechBadges(techBadges);
+        }
+
+        function renderMainBadges(badges) {
+            const container = document.getElementById('mainBadgesList');
+            if (!container) return;
+            const list = Array.isArray(badges) ? badges : [];
+            container.innerHTML = list.map((badge, index) => `
+                <div class="variant-item badge-item">
+                    <div class="badge-icon-preview" data-role="icon-preview" data-index="${index}" data-badge-type="main">
+                        <i class="${badge.iconClass || ''}"></i>
+                    </div>
+                    <input type="text" class="form-control variant-input" placeholder="Text" value="${badge.text || ''}" data-index="${index}" data-field="text">
+                    <input type="text" class="form-control variant-input" placeholder="Icon class (e.g. fas fa-check-circle)" value="${badge.iconClass || ''}" data-index="${index}" data-field="iconClass">
+                    <button type="button" class="btn-remove" onclick="removeMainBadge(${index})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderTechBadges(badges) {
+            const container = document.getElementById('techBadgesList');
+            if (!container) return;
+            const list = Array.isArray(badges) ? badges : [];
+            container.innerHTML = list.map((badge, index) => `
+                <div class="variant-item badge-item">
+                    <div class="badge-icon-preview" data-role="icon-preview" data-index="${index}" data-badge-type="tech">
+                        <i class="${badge.iconClass || ''}"></i>
+                    </div>
+                    <input type="text" class="form-control variant-input" placeholder="Text" value="${badge.text || ''}" data-index="${index}" data-field="text">
+                    <input type="text" class="form-control variant-input" placeholder="Icon class (e.g. fas fa-desktop)" value="${badge.iconClass || ''}" data-index="${index}" data-field="iconClass">
+                    <button type="button" class="btn-remove" onclick="removeTechBadge(${index})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        window.addVariant = function() {
+            const currentVariants = getCurrentVariants();
+            currentVariants.push({ name: '', price: '' });
+            renderVariants(currentVariants);
+        };
+
+        window.removeVariant = function(index) {
+            const currentVariants = getCurrentVariants();
+            currentVariants.splice(index, 1);
+            renderVariants(currentVariants);
+        };
+
+        window.addFeature = function() {
+            const currentFeatures = getCurrentFeatures();
+            currentFeatures.push({ name: '', description: '', items: [''] });
+            renderFeatures(currentFeatures);
+        };
+
+        window.addMainBadge = function() {
+            const current = getCurrentMainBadges();
+            current.push({ text: '', iconClass: '' });
+            renderMainBadges(current);
+        };
+
+        window.removeMainBadge = function(index) {
+            const current = getCurrentMainBadges();
+            current.splice(index, 1);
+            renderMainBadges(current);
+        };
+
+        window.addTechBadge = function() {
+            const current = getCurrentTechBadges();
+            current.push({ text: '', iconClass: '' });
+            renderTechBadges(current);
+        };
+
+        window.removeTechBadge = function(index) {
+            const current = getCurrentTechBadges();
+            current.splice(index, 1);
+            renderTechBadges(current);
+        };
+
+        window.addFeatureItem = function(featureIndex) {
+            const currentFeatures = getCurrentFeatures();
+            const feature = currentFeatures[featureIndex];
+            if (!feature) return;
+            if (!Array.isArray(feature.items)) feature.items = [];
+            feature.items.push('');
+            renderFeatures(currentFeatures);
+        };
+
+        window.removeFeatureItem = function(featureIndex, itemIndex) {
+            const currentFeatures = getCurrentFeatures();
+            const feature = currentFeatures[featureIndex];
+            if (!feature || !Array.isArray(feature.items)) return;
+            feature.items.splice(itemIndex, 1);
+            if (feature.items.length === 0) {
+                feature.items.push('');
+            }
+            renderFeatures(currentFeatures);
+        };
+
+        window.removeFeature = function(index) {
+            const currentFeatures = getCurrentFeatures();
+            currentFeatures.splice(index, 1);
+            renderFeatures(currentFeatures);
+        };
+
+        function getCurrentVariants() {
+            const variants = [];
+            document.querySelectorAll('#variantsList .variant-item').forEach(item => {
+                const name = item.querySelector('[data-field="name"]').value;
+                const price = item.querySelector('[data-field="price"]').value;
+                if (name && price) {
+                    variants.push({ name, price });
+                }
+            });
+            return variants;
+        }
+
+        function getCurrentFeatures() {
+            const features = [];
+            document.querySelectorAll('#featuresList .feature-item').forEach(item => {
+                const name = item.querySelector('[data-field="name"]').value;
+                const description = item.querySelector('[data-field="description"]').value;
+                const itemInputs = item.querySelectorAll('[data-field="item"]');
+                if (name) {
+                    const items = Array.from(itemInputs)
+                        .map(input => (input.value || '').trim())
+                        .filter(Boolean);
+                    features.push({ name, description, items });
+                }
+            });
+            return features;
+        }
+
+        function getCurrentMainBadges() {
+            const badges = [];
+            document.querySelectorAll('#mainBadgesList .badge-item').forEach(item => {
+                const text = (item.querySelector('[data-field="text"]')?.value || '').trim();
+                const iconClass = (item.querySelector('[data-field="iconClass"]')?.value || '').trim();
+                if (text) badges.push({ text, iconClass });
+            });
+            return badges;
+        }
+
+        function getCurrentTechBadges() {
+            const badges = [];
+            document.querySelectorAll('#techBadgesList .badge-item').forEach(item => {
+                const text = (item.querySelector('[data-field="text"]')?.value || '').trim();
+                const iconClass = (item.querySelector('[data-field="iconClass"]')?.value || '').trim();
+                if (text) badges.push({ text, iconClass });
+            });
+            return badges;
+        }
+
+        window.closeEditModal = function() {
+            document.getElementById('editModal').style.display = 'none';
+            currentEditingProduct = null;
+        };
+
+        // Validation functions
+        function validateSellhubId(sellhubId) {
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            return uuidRegex.test(sellhubId) || sellhubId === '';
+        }
+
+        function validateProductName(productName) {
+            return typeof productName === 'string' && productName.trim().length > 0 && productName.trim().length <= 80;
+        }
+
+        function slugifyProductId(input) {
+            const raw = String(input || '').trim().toLowerCase();
+            if (!raw) return '';
+            return raw
+                .replace(/['"`]/g, '')
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+/, '')
+                .replace(/-+$/, '')
+                .slice(0, 64);
+        }
+
+        function validateProductId(productId) {
+            const id = String(productId || '').trim();
+            if (!id) return false;
+            if (id === 'home-cards') return false;
+            if (id.length > 64) return false;
+            return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id);
+        }
+
+        function validateShortDescription(shortDescription) {
+            return typeof shortDescription === 'string' && shortDescription.length <= 180;
+        }
+        
+        function validatePrice(price) {
+            const priceRegex = /^€\d+(\.\d{2})?$/;
+            return priceRegex.test(price);
+        }
+        
+        function validateVariants(variants) {
+            if (!Array.isArray(variants)) return false;
+            return variants.every(variant => 
+                variant.name && variant.name.trim() !== '' &&
+                variant.price && validatePrice(variant.price)
+            );
+        }
+        
+        function validateFeatures(features) {
+            if (!Array.isArray(features)) return false;
+            return features.every(feature => {
+                if (!feature || typeof feature !== 'object') return false;
+                if (!feature.name || feature.name.trim() === '') return false;
+                if (feature.items !== undefined && !Array.isArray(feature.items)) return false;
+                return true;
+            });
+        }
+
+        function validateBadges(badges) {
+            if (!Array.isArray(badges)) return false;
+            return badges.every(badge => {
+                if (!badge || typeof badge !== 'object') return false;
+                if (!badge.text || typeof badge.text !== 'string' || badge.text.trim() === '') return false;
+                if (badge.iconClass !== undefined && typeof badge.iconClass !== 'string') return false;
+                return true;
+            });
+        }
+        
+        // Rate limiting
+        let lastSaveTime = 0;
+        const MIN_SAVE_INTERVAL = 2000; // 2 seconds
+
+        function updateProductStatusCache(productId, updatedData) {
+            try {
+                const cacheKey = 'productStatuses_cache';
+                const tsKey = 'productStatuses_cache_timestamp';
+                const raw = localStorage.getItem(cacheKey);
+                const cache = raw ? JSON.parse(raw) : {};
+                const prev = cache && typeof cache === 'object' ? (cache[productId] || {}) : {};
+                const nextCache = cache && typeof cache === 'object' ? cache : {};
+                nextCache[productId] = { ...(prev || {}), ...(updatedData || {}) };
+                localStorage.setItem(cacheKey, JSON.stringify(nextCache));
+                localStorage.setItem(tsKey, Date.now().toString());
+            } catch (e) {
+            }
+        }
+
+        const EMPTY_PREVIEW_IMG = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+        const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+        const pendingImageDataUrls = {
+            main: '',
+            gallery: ['', '', '']
+        };
+
+        const pendingImageClearFlags = {
+            main: false,
+            gallery: [false, false, false]
+        };
+
+        function isImageFileValid(file) {
+            if (!file) return true;
+            if (typeof file.size === 'number' && file.size > MAX_IMAGE_BYTES) return false;
+            const type = typeof file.type === 'string' ? file.type : '';
+            if (type && !type.startsWith('image/')) return false;
+            return true;
+        }
+
+        async function fileToOptimizedWebpDataUrl(file, maxWidth, maxHeight, quality) {
+            if (!file) return '';
+
+            const q = typeof quality === 'number' ? quality : 0.86;
+            const maxW = typeof maxWidth === 'number' ? maxWidth : 960;
+            const maxH = typeof maxHeight === 'number' ? maxHeight : 540;
+
+            const bitmap = await (async () => {
+                if (typeof createImageBitmap === 'function') {
+                    return await createImageBitmap(file);
+                }
+                const url = URL.createObjectURL(file);
+                try {
+                    const img = new Image();
+                    img.decoding = 'async';
+                    const loaded = new Promise((resolve, reject) => {
+                        img.onload = () => resolve(img);
+                        img.onerror = reject;
+                    });
+                    img.src = url;
+                    const el = await loaded;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = el.naturalWidth || el.width;
+                    canvas.height = el.naturalHeight || el.height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return null;
+                    ctx.drawImage(el, 0, 0);
+                    return await createImageBitmap(canvas);
+                } finally {
+                    URL.revokeObjectURL(url);
+                }
+            })();
+
+            if (!bitmap) return '';
+
+            const sw = bitmap.width;
+            const sh = bitmap.height;
+            const scale = Math.min(maxW / sw, maxH / sh, 1);
+            const dw = Math.max(1, Math.round(sw * scale));
+            const dh = Math.max(1, Math.round(sh * scale));
+
+            const canvas = document.createElement('canvas');
+            canvas.width = dw;
+            canvas.height = dh;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return '';
+            ctx.drawImage(bitmap, 0, 0, dw, dh);
+            const dataUrl = canvas.toDataURL('image/webp', q);
+            return typeof dataUrl === 'string' ? dataUrl : '';
+        }
+
+        async function fileToOptimizedWebpDataUrlWithBudget(file, maxWidth, maxHeight, quality, budgetBytes) {
+            if (!file) return '';
+            const budget = typeof budgetBytes === 'number' && Number.isFinite(budgetBytes) && budgetBytes > 0 ? budgetBytes : 0;
+            let w = typeof maxWidth === 'number' ? maxWidth : 960;
+            let h = typeof maxHeight === 'number' ? maxHeight : 540;
+            let q = typeof quality === 'number' ? quality : 0.86;
+            let last = '';
+
+            for (let attempt = 0; attempt < 6; attempt++) {
+                const dataUrl = await fileToOptimizedWebpDataUrl(file, w, h, q);
+                if (!dataUrl) return '';
+                last = dataUrl;
+                if (!budget) return dataUrl;
+                const bytes = estimateDataUrlBytes(dataUrl);
+                if (bytes <= budget) return dataUrl;
+                q = Math.max(0.68, q - 0.06);
+                w = Math.max(420, Math.round(w * 0.9));
+                h = Math.max(260, Math.round(h * 0.9));
+            }
+
+            return last;
+        }
+
+        function estimateDataUrlBytes(dataUrl) {
+            if (typeof dataUrl !== 'string') return 0;
+            const comma = dataUrl.indexOf(',');
+            if (comma === -1) return 0;
+            const base64 = dataUrl.slice(comma + 1);
+            const padding = (base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0);
+            return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+        }
+
+        function setPreviewImage(previewId, url) {
+            const el = document.getElementById(previewId);
+            if (!el) return;
+            const src = normalizeStoredImageUrl(url);
+            el.src = src || EMPTY_PREVIEW_IMG;
+        }
+
+        function bindFilePreview(fileInputId, previewId, kind, index) {
+            const input = document.getElementById(fileInputId);
+            if (!input) return;
+            input.addEventListener('change', async () => {
+                try {
+                    const file = input.files && input.files[0] ? input.files[0] : null;
+                    if (!file) return;
+                    if (!isImageFileValid(file)) {
+                        showNotification('Invalid image file (must be image/* and <= 5MB)', 'error');
+                        input.value = '';
+                        return;
+                    }
+
+                    setPreviewImage(previewId, EMPTY_PREVIEW_IMG);
+
+                    const isMain = kind === 'main';
+                    const dataUrl = await fileToOptimizedWebpDataUrlWithBudget(
+                        file,
+                        isMain ? 1400 : 1200,
+                        isMain ? 788 : 675,
+                        isMain ? 0.90 : 0.88,
+                        isMain ? 300000 : 200000
+                    );
+
+                    if (!dataUrl) {
+                        showNotification('Failed to process image', 'error');
+                        return;
+                    }
+
+                    setPreviewImage(previewId, dataUrl);
+
+                    if (isMain) {
+                        pendingImageClearFlags.main = false;
+                        pendingImageDataUrls.main = dataUrl;
+                        const mainUrlEl = document.getElementById('mainImageUrl');
+                        if (mainUrlEl) mainUrlEl.value = '';
+                        return;
+                    }
+
+                    const idx = typeof index === 'number' ? index : 0;
+                    if (idx >= 0 && idx < 3) {
+                        pendingImageClearFlags.gallery[idx] = false;
+                        pendingImageDataUrls.gallery[idx] = dataUrl;
+                        const urlEl = document.getElementById(`galleryUrl${idx + 1}`);
+                        if (urlEl) urlEl.value = '';
+                    }
+                } catch (e) {
+                    const msg = e && e.message ? e.message : String(e);
+                    showNotification('Image error: ' + msg, 'error');
+                }
+            });
+        }
+        
+        window.saveProduct = async function() {
+            if (!currentEditingProduct) {
+                showNotification('No product selected for editing', 'error');
+                return;
+            }
+
+            const editingProductId = currentEditingProduct.id;
+            const editingProductDisplayName = currentEditingProduct.productName || currentEditingProduct.name || editingProductId;
+
+            const saveBtn = document.querySelector('.btn-primary[onclick="saveProduct()"]');
+            const originalBtnText = saveBtn ? saveBtn.innerHTML : '';
+            
+            // Rate limiting check
+            const now = Date.now();
+            if (now - lastSaveTime < MIN_SAVE_INTERVAL) {
+                showNotification('Please wait a moment before saving again', 'error');
                 return;
             }
             
-            container.className = 'products-grid';
-            container.innerHTML = PRODUCTS.map(product => {
-                const status = currentStatuses[product.id]?.status || 'UNKNOWN';
-                return renderProductCard(product, status);
+            const sellhubId = document.getElementById('sellhubId').value;
+            const productName = document.getElementById('productName').value;
+            const shortDescription = document.getElementById('shortDescription').value;
+            const videoShowcaseUrlInput = document.getElementById('videoShowcaseUrl')?.value || '';
+            const metaTitleInput = document.getElementById('metaTitle')?.value || '';
+            const metaDescriptionInput = document.getElementById('metaDescription')?.value || '';
+            const variants = getCurrentVariants();
+            const features = getCurrentFeatures();
+            const mainBadges = getCurrentMainBadges();
+            const techBadges = getCurrentTechBadges();
+
+            const mainImageUrlInput = (document.getElementById('mainImageUrl')?.value || '').trim();
+            const galleryUrlInputs = [
+                (document.getElementById('galleryUrl1')?.value || '').trim(),
+                (document.getElementById('galleryUrl2')?.value || '').trim(),
+                (document.getElementById('galleryUrl3')?.value || '').trim()
+            ];
+            const mainFile = document.getElementById('mainImageFile')?.files?.[0] || null;
+            const galleryFiles = [
+                document.getElementById('galleryFile1')?.files?.[0] || null,
+                document.getElementById('galleryFile2')?.files?.[0] || null,
+                document.getElementById('galleryFile3')?.files?.[0] || null
+            ];
+
+            if (!isImageFileValid(mainFile) || galleryFiles.some(f => !isImageFileValid(f))) {
+                showNotification('Invalid image file (must be image/* and <= 5MB)', 'error');
+                return;
+            }
+
+            if (!validateProductName(productName)) {
+                showNotification('Product Name is required (max 80 characters)', 'error');
+                return;
+            }
+
+            if (!validateShortDescription(shortDescription)) {
+                showNotification('Short Description is too long (max 180 characters)', 'error');
+                return;
+            }
+            
+            // Validation
+            if (!validateSellhubId(sellhubId)) {
+                showNotification('Invalid Sellhub ID format. Must be a valid UUID.', 'error');
+                return;
+            }
+            
+            if (variants.length === 0) {
+                showNotification('At least one variant is required', 'error');
+                return;
+            }
+            
+            if (!validateVariants(variants)) {
+                showNotification('Invalid variant data. Check names and prices (format: €XX.XX)', 'error');
+                return;
+            }
+            
+            if (!validateFeatures(features)) {
+                showNotification('Invalid feature data. Feature names cannot be empty', 'error');
+                return;
+            }
+
+            if (!validateBadges(mainBadges) || !validateBadges(techBadges)) {
+                showNotification('Invalid badges data. Badge text cannot be empty', 'error');
+                return;
+            }
+            
+            const updatedData = {
+                productName: productName.trim(),
+                shortDescription: shortDescription.trim(),
+                status: document.getElementById('productStatus').value,
+                sellhubId: sellhubId,
+                videoShowcaseUrl: videoShowcaseUrlInput.trim(),
+                metaTitle: metaTitleInput.trim(),
+                metaDescription: metaDescriptionInput.trim(),
+                variants: variants,
+                features: features,
+                mainBadges: mainBadges,
+                techBadges: techBadges,
+                lastUpdated: new Date().toISOString(),
+                updatedBy: 'admin' // In a real app, this would be the current user
+            };
+            
+            try {
+                // Show loading state
+                if (saveBtn) {
+                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                    saveBtn.disabled = true;
+                }
+
+                let mainImageUrlFinal = normalizeStoredImageUrl(mainImageUrlInput);
+                let galleryFinal = galleryUrlInputs.map(v => normalizeStoredImageUrl(v));
+
+                const existingMainDataUrl = currentEditingProduct && typeof currentEditingProduct.mainImageDataUrl === 'string' ? currentEditingProduct.mainImageDataUrl : '';
+                const existingGalleryDataUrls = currentEditingProduct && Array.isArray(currentEditingProduct.galleryImageDataUrls)
+                    ? currentEditingProduct.galleryImageDataUrls
+                    : [];
+
+                let mainImageDataUrlFinal = '';
+                const galleryDataUrlFinal = ['', '', ''];
+
+                if (pendingImageClearFlags.main) {
+                    mainImageUrlFinal = '';
+                    mainImageDataUrlFinal = '';
+                } else if (mainImageUrlFinal) {
+                    mainImageDataUrlFinal = '';
+                } else if (pendingImageDataUrls.main) {
+                    mainImageDataUrlFinal = pendingImageDataUrls.main;
+                    mainImageUrlFinal = '';
+                } else if (existingMainDataUrl) {
+                    mainImageDataUrlFinal = existingMainDataUrl;
+                    mainImageUrlFinal = '';
+                } else {
+                    mainImageUrlFinal = '';
+                    mainImageDataUrlFinal = '';
+                }
+
+                for (let i = 0; i < 3; i++) {
+                    if (pendingImageClearFlags.gallery[i]) {
+                        galleryFinal[i] = '';
+                        galleryDataUrlFinal[i] = '';
+                        continue;
+                    }
+                    if (galleryFinal[i]) {
+                        galleryDataUrlFinal[i] = '';
+                        continue;
+                    }
+                    if (pendingImageDataUrls.gallery[i]) {
+                        galleryDataUrlFinal[i] = pendingImageDataUrls.gallery[i];
+                        continue;
+                    }
+                    const existing = typeof existingGalleryDataUrls[i] === 'string' ? existingGalleryDataUrls[i] : '';
+                    galleryDataUrlFinal[i] = existing;
+                }
+
+                updatedData.mainImageUrl = mainImageUrlFinal;
+                updatedData.mainImageDataUrl = mainImageDataUrlFinal;
+                updatedData.galleryImageUrls = galleryFinal.filter(v => typeof v === 'string' && v.trim() !== '');
+                updatedData.galleryImageDataUrls = galleryDataUrlFinal.filter(v => typeof v === 'string' && v.trim() !== '');
+
+                const maxDocBytes = 900000;
+                const mainBytes = estimateDataUrlBytes(updatedData.mainImageDataUrl);
+                const galleryBytes = (updatedData.galleryImageDataUrls || []).reduce((sum, u) => sum + estimateDataUrlBytes(u), 0);
+                if (mainBytes + galleryBytes > maxDocBytes) {
+                    showNotification('Images are too large. Use smaller images (max ~900KB total).', 'error');
+                    return;
+                }
+
+                pendingImageDataUrls.main = '';
+                pendingImageDataUrls.gallery = ['', '', ''];
+                pendingImageClearFlags.main = false;
+                pendingImageClearFlags.gallery = [false, false, false];
+                
+                const productRef = doc(db, "productStatuses", editingProductId);
+                updateProductStatusCache(editingProductId, updatedData);
+
+                let savedToFirebase = true;
+                try {
+                    await setDoc(productRef, updatedData, { merge: true });
+                } catch (e) {
+                    savedToFirebase = false;
+                }
+                
+                lastSaveTime = now;
+                showNotification(
+                    savedToFirebase
+                        ? `${editingProductDisplayName} updated successfully!`
+                        : `${editingProductDisplayName} saved locally (Firebase blocked).`,
+                    savedToFirebase ? 'success' : 'error'
+                );
+                
+                // Update local data
+                const index = currentProducts.findIndex(p => p.id === editingProductId);
+                if (index !== -1) {
+                    currentProducts[index] = { ...currentProducts[index], ...updatedData };
+                    filterProducts();
+                }
+
+                closeEditModal();
+                
+            } catch (error) {
+                console.error('Error saving product:', error);
+                showNotification('Error saving product: ' + error.message, 'error');
+            } finally {
+                // Restore button state
+                if (saveBtn) {
+                    saveBtn.innerHTML = originalBtnText;
+                    saveBtn.disabled = false;
+                }
+            }
+        };
+
+        window.viewProduct = function(productId) {
+            showNotification('Product view coming soon!', 'success');
+        };
+
+        window.resetVariantsToDefaults = async function(productId) {
+            try {
+                const defaults = DEFAULT_PRODUCT_DATA[productId];
+                if (!defaults || !Array.isArray(defaults.variants)) {
+                    showNotification('No default variants found for this product', 'error');
+                    return;
+                }
+
+                const productRef = doc(db, "productStatuses", productId);
+                await setDoc(productRef, {
+                    variants: defaults.variants,
+                    lastUpdated: new Date().toISOString(),
+                    updatedBy: 'admin-reset-variants'
+                }, { merge: true });
+                showNotification('Variants reset to defaults', 'success');
+            } catch (error) {
+                console.error('Error resetting variants:', error);
+                showNotification('Failed to reset variants', 'error');
+            }
+        };
+
+        window.resetFeaturesToDefaults = async function(productId) {
+            try {
+                const defaults = DEFAULT_PRODUCT_DATA[productId];
+                if (!defaults || !Array.isArray(defaults.features)) {
+                    showNotification('No default features found for this product', 'error');
+                    return;
+                }
+
+                const productRef = doc(db, "productStatuses", productId);
+                await setDoc(productRef, {
+                    features: defaults.features,
+                    lastUpdated: new Date().toISOString(),
+                    updatedBy: 'admin-reset-features'
+                }, { merge: true });
+                showNotification('Features reset to defaults', 'success');
+            } catch (error) {
+                console.error('Error resetting features:', error);
+                showNotification('Failed to reset features', 'error');
+            }
+        };
+
+        window.resetBadgesToDefaults = async function(productId) {
+            try {
+                const defaults = DEFAULT_PRODUCT_DATA[productId];
+                if (!defaults || !Array.isArray(defaults.mainBadges) || !Array.isArray(defaults.techBadges)) {
+                    showNotification('No default badges found for this product', 'error');
+                    return;
+                }
+
+                const productRef = doc(db, "productStatuses", productId);
+                await setDoc(productRef, {
+                    mainBadges: defaults.mainBadges,
+                    techBadges: defaults.techBadges,
+                    lastUpdated: new Date().toISOString(),
+                    updatedBy: 'admin-reset-badges'
+                }, { merge: true });
+                showNotification('Badges reset to defaults', 'success');
+            } catch (error) {
+                console.error('Error resetting badges:', error);
+                showNotification('Failed to reset badges', 'error');
+            }
+        };
+
+        window.deleteProduct = function(productId) {
+            const product = currentProducts.find(p => p.id === productId);
+            if (!product) return;
+            
+            if (confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone and will remove all product data including variants and features.`)) {
+                // In a real implementation, this would delete from Firebase
+                showNotification('Product deletion is not implemented for safety reasons', 'error');
+            }
+        };
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', filterProducts);
+        document.getElementById('statusFilter').addEventListener('change', filterProducts);
+
+        (() => {
+            const btn = document.getElementById('addProductBtn');
+            if (!btn) return;
+            btn.addEventListener('click', async () => {
+                try {
+                    const name = String(prompt('Enter new product name (e.g. Fortnite Public):', '') || '').trim();
+                    if (!name) return;
+                    const suggestedId = slugifyProductId(name);
+                    const id = String(prompt('Enter Product ID (slug, used in URLs):', suggestedId) || '').trim();
+                    if (!validateProductId(id)) {
+                        showNotification('Invalid Product ID. Use lowercase letters/numbers and hyphens only.', 'error');
+                        return;
+                    }
+
+                    const ref = doc(db, 'productStatuses', id);
+                    const existing = await getDoc(ref);
+                    if (existing && existing.exists()) {
+                        showNotification('Product already exists - opening editor', 'warning');
+                        setTimeout(() => window.editProduct(id), 50);
+                        return;
+                    }
+
+                    const payload = {
+                        productName: name,
+                        status: 'UNKNOWN',
+                        sellhubId: '',
+                        shortDescription: '',
+                        description: '',
+                        variants: [{ name: '1 Week', price: '€0.00' }],
+                        features: [],
+                        mainBadges: [],
+                        techBadges: [],
+                        lastUpdated: new Date().toISOString(),
+                        updatedBy: 'admin-create'
+                    };
+                    await setDoc(ref, payload, { merge: false });
+                    showNotification('Product created', 'success');
+
+                    const tryOpen = (attemptsLeft) => {
+                        const found = currentProducts && currentProducts.find(p => p.id === id);
+                        if (found) {
+                            window.editProduct(id);
+                            return;
+                        }
+                        if (attemptsLeft <= 0) return;
+                        setTimeout(() => tryOpen(attemptsLeft - 1), 150);
+                    };
+                    tryOpen(15);
+                } catch (e) {
+                    showNotification('Failed to create product', 'error');
+                }
+            });
+        })();
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target === modal) {
+                closeEditModal();
+            }
+            const homeCardModal = document.getElementById('editHomeCardModal');
+            if (event.target === homeCardModal) {
+                closeEditHomeCardModal();
+            }
+            const deleteModal = document.getElementById('deleteProductModal');
+            if (event.target === deleteModal) {
+                closeDeleteProductModal();
+            }
+        });
+
+        // Close modals with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const editModal = document.getElementById('editModal');
+                const homeCardModal = document.getElementById('editHomeCardModal');
+                const deleteModal = document.getElementById('deleteProductModal');
+                
+                if (editModal.style.display === 'block') {
+                    closeEditModal();
+                } else if (homeCardModal.style.display === 'block') {
+                    closeEditHomeCardModal();
+                } else if (deleteModal.style.display === 'block') {
+                    closeDeleteProductModal();
+                }
+            }
+        });
+
+        // Home Card Modal Functions
+        let currentEditingHomeCard = null;
+
+        window.editHomeCard = function(cardId) {
+            const card = homeCardsConfig.items.find(item => item.id === cardId);
+            if (!card) return;
+
+            currentEditingHomeCard = card;
+            document.getElementById('homeCardModalTitle').textContent = `Edit ${card.title || 'Home Card'}`;
+            document.getElementById('homeCardTitle').value = card.title || '';
+            document.getElementById('homeCardHash').value = card.hash || '';
+            
+            // Ustaw obrazek
+            const imageSrc = getEffectiveHomeCardImage(card);
+            document.getElementById('homeCardImagePreview').src = normalizeStoredImageUrl(imageSrc) || '';
+            document.getElementById('homeCardImageUrl').value = card.imageUrl || '';
+            
+            // Wypełnij listę produktów
+            renderHomeCardProductsList(card.products || []);
+            
+            document.getElementById('editHomeCardModal').style.display = 'block';
+        };
+
+        window.closeEditHomeCardModal = function() {
+            document.getElementById('editHomeCardModal').style.display = 'none';
+            currentEditingHomeCard = null;
+        };
+
+        window.saveHomeCard = function() {
+            if (!currentEditingHomeCard) {
+                showNotification('No home card selected for editing', 'error');
+                return;
+            }
+
+            const title = document.getElementById('homeCardTitle').value.trim();
+            const hash = document.getElementById('homeCardHash').value.trim();
+            const imageUrl = document.getElementById('homeCardImageUrl').value.trim();
+            
+            if (!title) {
+                showNotification('Card title is required', 'error');
+                return;
+            }
+
+            // Zbierz zaznaczone produkty
+            const selectedProducts = [];
+            document.querySelectorAll('#homeCardProductsList input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedProducts.push(checkbox.value);
+            });
+
+            // Aktualizuj kartę
+            const updatedCard = {
+                ...currentEditingHomeCard,
+                title: title,
+                hash: hash,
+                imageUrl: imageUrl,
+                products: selectedProducts
+            };
+
+            // Obsługa pliku obrazka
+            const fileInput = document.getElementById('homeCardImageFile');
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    updatedCard.imageDataUrl = e.target.result;
+                    finalizeHomeCardSave(updatedCard);
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                finalizeHomeCardSave(updatedCard);
+            }
+        };
+
+        function finalizeHomeCardSave(updatedCard) {
+            // Znajdź i zaktualizuj kartę w konfiguracji
+            const index = homeCardsConfig.items.findIndex(item => item.id === updatedCard.id);
+            if (index !== -1) {
+                homeCardsConfig.items[index] = updatedCard;
+                homeCardsDirty = true;
+                saveHomeCardsToCache(homeCardsConfig);
+                renderHomeCardsPanel();
+                bindHomeCardsPanelEvents();
+                closeEditHomeCardModal();
+                (async () => {
+                    try {
+                        const items = Array.isArray(homeCardsConfig.items) ? homeCardsConfig.items : [];
+                        await persistHomeCards(items, { successMessage: 'Home card saved' });
+                    } catch (e) {
+                        showNotification('Failed to save home card', 'error');
+                    }
+                })();
+            }
+        }
+
+        function renderHomeCardProductsList(selectedProducts) {
+            const container = document.getElementById('homeCardProductsList');
+            if (!container) return;
+
+            const products = getHomeProductsCatalog();
+            container.innerHTML = products.map(product => {
+                const checked = selectedProducts.includes(product.id) ? ' checked' : '';
+                return `
+                    <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;
+                           border:1px solid rgba(255,255,255,0.10);background:rgba(0,0,0,0.18);margin-bottom:8px;">
+                        <input type="checkbox" value="${escapeHtml(product.id)}"${checked}>
+                        <span style="color:rgba(255,255,255,0.92);font-weight:600;">${escapeHtml(product.name)}</span>
+                        <span style="margin-left:auto;color:rgba(255,255,255,0.6);font-size:0.85rem;">${escapeHtml(product.id)}</span>
+                    </label>
+                `;
             }).join('');
         }
 
-        window.saveStatus = async function(productId) {
-            const card = document.querySelector(`.product-card[data-product-id="${productId}"]`);
-            const select = card.querySelector('.status-select');
-            const button = card.querySelector('.save-btn');
-            const newStatus = select.value;
+        window.clearHomeCardImage = function() {
+            document.getElementById('homeCardImagePreview').src = '';
+            document.getElementById('homeCardImageUrl').value = '';
+            document.getElementById('homeCardImageFile').value = '';
+        };
+
+        // Delete Product Modal Functions
+        let currentDeletingProduct = null;
+
+        window.deleteProduct = function(productId) {
+            const product = currentProducts.find(p => p.id === productId);
+            if (!product) return;
+
+            currentDeletingProduct = product;
+            document.getElementById('deleteProductName').textContent = product.productName || product.name || product.id;
+            document.getElementById('deleteProductConfirmInput').value = '';
+            document.getElementById('deleteProductError').style.display = 'none';
+            document.getElementById('confirmDeleteBtn').disabled = true;
             
-            if (newStatus === (currentStatuses[productId]?.status || 'UNKNOWN')) {
-                showNotification('Status has not been changed', 'error');
+            document.getElementById('deleteProductModal').style.display = 'block';
+            
+            // Focus na input po otwarciu modala
+            setTimeout(() => {
+                document.getElementById('deleteProductConfirmInput').focus();
+            }, 100);
+        };
+
+        window.closeDeleteProductModal = function() {
+            document.getElementById('deleteProductModal').style.display = 'none';
+            currentDeletingProduct = null;
+        };
+
+        window.confirmDeleteProduct = async function() {
+            if (!currentDeletingProduct) return;
+
+            const confirmInput = document.getElementById('deleteProductConfirmInput').value.trim();
+            const productName = currentDeletingProduct.productName || currentDeletingProduct.name || currentDeletingProduct.id;
+            const deletingProductId = String(currentDeletingProduct.id || '').trim();
+            
+            if (confirmInput !== productName) {
+                document.getElementById('deleteProductError').textContent = 'Product name does not match. Please try again.';
+                document.getElementById('deleteProductError').style.display = 'block';
                 return;
             }
-            
-            card.classList.add('saving');
-            button.disabled = true;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            
+
             try {
-                const statusRef = doc(db, "productStatuses", productId);
-                await setDoc(statusRef, {
-                    status: newStatus,
-                    lastUpdated: new Date().toISOString(),
-                    notes: currentStatuses[productId]?.notes || ""
-                }, { merge: true });
-                
-                showNotification(`Status for "${PRODUCTS.find(p => p.id === productId)?.name}" updated!`, 'success');
-                
-                // Update local state
-                if (!currentStatuses[productId]) {
-                    currentStatuses[productId] = {};
+                // Usuń z Firebase
+                const productRef = doc(db, "productStatuses", deletingProductId);
+                await deleteDoc(productRef);
+
+                // Usuń produkt z kart home-cards
+                if (deletingProductId) {
+                    const items = Array.isArray(homeCardsConfig.items) ? homeCardsConfig.items : [];
+                    let changed = false;
+                    const sanitized = items.map(card => {
+                        const list = Array.isArray(card?.products) ? card.products : [];
+                        const next = list.filter(pid => String(pid || '').trim() !== deletingProductId);
+                        if (next.length !== list.length) changed = true;
+                        return { ...card, products: next };
+                    });
+
+                    if (changed) {
+                        homeCardsConfig.items = sanitized;
+                        homeCardsDirty = true;
+                        saveHomeCardsToCache(homeCardsConfig);
+                        try {
+                            await persistHomeCards(sanitized, { successMessage: '' });
+                        } catch (e) {
+                            showNotification('Failed to update home cards after product delete', 'error');
+                        }
+
+                        if (currentEditingHomeCard) {
+                            const fresh = sanitized.find(it => it && it.id === currentEditingHomeCard.id) || null;
+                            if (fresh) currentEditingHomeCard = fresh;
+                            renderHomeCardProductsList((fresh && Array.isArray(fresh.products)) ? fresh.products : []);
+                        }
+                    }
                 }
-                currentStatuses[productId].status = newStatus;
                 
-                // Update UI
-                const statusConfig = getStatusConfig(newStatus);
-                const currentStatusDiv = card.querySelector('.current-status');
-                currentStatusDiv.innerHTML = `<i class="fas ${statusConfig.icon}"></i> ${newStatus}`;
-                currentStatusDiv.style.background = statusConfig.bg;
-                currentStatusDiv.style.color = statusConfig.color;
+                // Usuń z lokalnej listy
+                currentProducts = currentProducts.filter(p => p.id !== deletingProductId);
+                filterProducts();
+                
+                showNotification(`Product "${productName}" has been successfully deleted.`, 'success');
+                closeDeleteProductModal();
                 
             } catch (error) {
-                console.error('Error saving status:', error);
-                showNotification('Error saving: ' + error.message, 'error');
-            } finally {
-                card.classList.remove('saving');
-                button.disabled = false;
-                button.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                console.error('Error deleting product:', error);
+                showNotification('Error deleting product: ' + error.message, 'error');
             }
         };
+
+        // Nasłuchuj zmiany w polu potwierdzenia
+        document.addEventListener('DOMContentLoaded', function() {
+            const confirmInput = document.getElementById('deleteProductConfirmInput');
+            if (confirmInput) {
+                confirmInput.addEventListener('input', function() {
+                    const confirmBtn = document.getElementById('confirmDeleteBtn');
+                    const errorDiv = document.getElementById('deleteProductError');
+                    
+                    if (currentDeletingProduct) {
+                        const productName = currentDeletingProduct.productName || currentDeletingProduct.name || currentDeletingProduct.id;
+                        const isValid = this.value.trim() === productName;
+                        
+                        confirmBtn.disabled = !isValid;
+                        
+                        if (this.value.trim() && !isValid) {
+                            errorDiv.textContent = 'Product name does not match.';
+                            errorDiv.style.display = 'block';
+                        } else {
+                            errorDiv.style.display = 'none';
+                        }
+                    }
+                });
+            }
+        });
+
+        // Add event listeners for home card image preview
+        document.addEventListener('DOMContentLoaded', function() {
+            const homeCardImageUrl = document.getElementById('homeCardImageUrl');
+            const homeCardImageFile = document.getElementById('homeCardImageFile');
+            const homeCardImagePreview = document.getElementById('homeCardImagePreview');
+
+            if (homeCardImageUrl) {
+                homeCardImageUrl.addEventListener('input', function() {
+                    if (this.value.trim()) {
+                        homeCardImagePreview.src = this.value;
+                    }
+                });
+            }
+
+            if (homeCardImageFile) {
+                homeCardImageFile.addEventListener('change', function() {
+                    if (this.files && this.files[0]) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            homeCardImagePreview.src = e.target.result;
+                        };
+                        reader.readAsDataURL(this.files[0]);
+                    }
+                });
+            }
+        });
 
         async function initializeDashboard() {
             try {
                 updateConnectionStatus(false);
                 
-                // Load initial statuses
-                const statusesRef = collection(db, "productStatuses");
-                const snapshot = await getDocs(statusesRef);
-                
-                snapshot.forEach((doc) => {
-                    currentStatuses[doc.id] = doc.data();
+                // Load initial products
+                const productsRef = collection(db, "productStatuses");
+                const snapshot = await getDocs(productsRef);
+
+                const docDataById = {};
+                snapshot.forEach(docSnap => {
+                    docDataById[docSnap.id] = docSnap.data();
+                });
+
+                await ensureDefaultsInFirestore(docDataById);
+
+                await forceResetVariantsToDefaultsOnce(['rust', 'permanent-spoofer', 'ai-aimbot'], docDataById);
+
+                await forceResetFeaturesToDefaultsOnce(['permanent-spoofer', 'rust', 'black-ops-6', 'ai-aimbot'], docDataById);
+
+                const defaultsById = DEFAULT_PRODUCT_DATA;
+
+                const knownIds = PRODUCTS.map(p => p.id);
+                const extraIds = Object.keys(docDataById)
+                    .filter(id => id !== 'home-cards' && !knownIds.includes(id))
+                    .sort();
+                const allIds = [...knownIds, ...extraIds];
+                const productById = {};
+                PRODUCTS.forEach(p => { productById[p.id] = p; });
+
+                currentProducts = allIds.map(productId => {
+                    const base = productById[productId] || { id: productId, name: productId, sellhubId: '' };
+                    const docData = docDataById[productId] || {};
+                    const defaults = defaultsById[productId] || {};
+                    return {
+                        ...base,
+                        productName: docData.productName !== undefined ? docData.productName : (defaults.productName || base.name),
+                        shortDescription: docData.shortDescription !== undefined ? docData.shortDescription : (defaults.shortDescription || ''),
+                        status: docData.status || 'UNKNOWN',
+                        sellhubId: docData.sellhubId !== undefined ? docData.sellhubId : (defaults.sellhubId || base.sellhubId || ''),
+                        mainImageUrl: typeof docData.mainImageUrl === 'string' ? docData.mainImageUrl : getDefaultMainImageUrl(productId),
+                        mainImageDataUrl: typeof docData.mainImageDataUrl === 'string' ? docData.mainImageDataUrl : '',
+                        galleryImageUrls: Array.isArray(docData.galleryImageUrls) ? docData.galleryImageUrls : [],
+                        galleryImageDataUrls: Array.isArray(docData.galleryImageDataUrls) ? docData.galleryImageDataUrls : [],
+                        description: docData.description !== undefined ? docData.description : (defaults.description || ''),
+                        variants: docData.variants !== undefined ? docData.variants : (defaults.variants || []),
+                        features: normalizeFeatures(docData.features !== undefined ? docData.features : (defaults.features || [])),
+                        mainBadges: normalizeBadges(docData.mainBadges !== undefined ? docData.mainBadges : (defaults.mainBadges || [])),
+                        techBadges: normalizeBadges(docData.techBadges !== undefined ? docData.techBadges : (defaults.techBadges || [])),
+                        videoShowcaseUrl: typeof docData.videoShowcaseUrl === 'string' ? docData.videoShowcaseUrl : '',
+                        metaTitle: typeof docData.metaTitle === 'string' ? docData.metaTitle : '',
+                        metaDescription: typeof docData.metaDescription === 'string' ? docData.metaDescription : '',
+                        lastUpdated: docData.lastUpdated || null
+                    };
                 });
                 
-                renderProducts();
+                filteredProducts = [...currentProducts];
+                renderProductsTable();
                 updateConnectionStatus(true);
                 
                 // Set up real-time listener
-                onSnapshot(statusesRef, (snapshot) => {
-                    const updatedStatuses = {};
+                onSnapshot(productsRef, (snapshot) => {
+                    const updatedData = {};
                     snapshot.forEach((doc) => {
-                        updatedStatuses[doc.id] = doc.data();
+                        updatedData[doc.id] = doc.data();
+                    });
+
+                    const knownIds = PRODUCTS.map(p => p.id);
+                    const extraIds = Object.keys(updatedData)
+                        .filter(id => id !== 'home-cards' && !knownIds.includes(id))
+                        .sort();
+                    const allIds = [...knownIds, ...extraIds];
+                    const productById = {};
+                    PRODUCTS.forEach(p => { productById[p.id] = p; });
+
+                    currentProducts = allIds.map(productId => {
+                        const base = productById[productId] || { id: productId, name: productId, sellhubId: '' };
+                        const incoming = updatedData[productId] || {};
+                        const defaults = DEFAULT_PRODUCT_DATA[productId] || {};
+                        return {
+                            ...base,
+                            ...incoming,
+                            productName: incoming.productName !== undefined ? incoming.productName : (defaults.productName || base.name),
+                            shortDescription: incoming.shortDescription !== undefined ? incoming.shortDescription : (defaults.shortDescription || ''),
+                            status: incoming.status || 'UNKNOWN',
+                            sellhubId: incoming.sellhubId !== undefined ? incoming.sellhubId : (defaults.sellhubId || base.sellhubId || ''),
+                            variants: incoming.variants !== undefined ? incoming.variants : (defaults.variants || []),
+                            features: normalizeFeatures(incoming.features !== undefined ? incoming.features : (defaults.features || [])),
+                            mainBadges: normalizeBadges(incoming.mainBadges !== undefined ? incoming.mainBadges : (defaults.mainBadges || [])),
+                            techBadges: normalizeBadges(incoming.techBadges !== undefined ? incoming.techBadges : (defaults.techBadges || [])),
+                            metaTitle: incoming.metaTitle !== undefined ? incoming.metaTitle : '',
+                            metaDescription: incoming.metaDescription !== undefined ? incoming.metaDescription : ''
+                        };
                     });
                     
-                    // Check if any status changed
-                    let hasChanges = false;
-                    Object.keys(updatedStatuses).forEach(id => {
-                        if (currentStatuses[id]?.status !== updatedStatuses[id]?.status) {
-                            hasChanges = true;
-                        }
-                    });
-                    
-                    currentStatuses = updatedStatuses;
-                    
-                    if (hasChanges) {
-                        renderProducts();
-                        showNotification('Statuses updated from Firebase', 'success');
+                    filteredProducts = [...currentProducts];
+                    filterProducts();
+
+                    if (currentEditingHomeCard) {
+                        renderHomeCardProductsList(currentEditingHomeCard.products || []);
                     }
-                    
                     updateConnectionStatus(true);
+                    
                 }, (error) => {
                     console.error('Error in snapshot:', error);
                     updateConnectionStatus(false);
@@ -765,136 +2941,584 @@ const db = getFirestore(app);</code></pre>
                 console.error('Error initializing dashboard:', error);
                 updateConnectionStatus(false);
                 document.getElementById('productsContainer').innerHTML = 
-                    '<div class="loading"><p style="color: #ff0000;">Error connecting to Firebase. Check security rules.</p></div>';
+                    '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Connection Error</h3><p>Failed to connect to Firebase. Please check your connection.</p></div>';
             }
         }
 
         // Initialize on load
+        bindFilePreview('mainImageFile', 'mainImagePreview', 'main');
+        bindFilePreview('galleryFile1', 'galleryPreview1', 'gallery', 0);
+        bindFilePreview('galleryFile2', 'galleryPreview2', 'gallery', 1);
+        bindFilePreview('galleryFile3', 'galleryPreview3', 'gallery', 2);
+
+        ['mainImageUrl'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('input', () => {
+                pendingImageClearFlags.main = false;
+                pendingImageDataUrls.main = '';
+                setPreviewImage('mainImagePreview', el.value);
+            });
+        });
+
+        [
+            { url: 'galleryUrl1', preview: 'galleryPreview1', idx: 0 },
+            { url: 'galleryUrl2', preview: 'galleryPreview2', idx: 1 },
+            { url: 'galleryUrl3', preview: 'galleryPreview3', idx: 2 }
+        ].forEach(cfg => {
+            const el = document.getElementById(cfg.url);
+            if (!el) return;
+            el.addEventListener('input', () => {
+                pendingImageClearFlags.gallery[cfg.idx] = false;
+                pendingImageDataUrls.gallery[cfg.idx] = '';
+                setPreviewImage(cfg.preview, el.value);
+            });
+        });
+
+        (() => {
+            const el = document.getElementById('videoShowcaseUrl');
+            if (!el) return;
+            el.addEventListener('input', () => {
+                updateVideoShowcasePreviewFromUrl(el.value);
+            });
+        })();
+
+        const HOME_CARDS_CACHE_KEY = 'homeCards_cache';
+        const HOME_CARDS_CACHE_TIMESTAMP = 'homeCards_cache_timestamp';
+
+        const DEFAULT_HOME_CARDS_ITEMS = [
+            {
+                id: 'fortnite',
+                title: 'FORTNITE',
+                hash: 'fortnite',
+                imageUrl: '/images.home/Fortnite.webp.578d1fc74972b65d4e63696d40ff19e6.webp',
+                imageDataUrl: '',
+                products: ['fortnite-private', 'fortnite-internal', 'ai-aimbot']
+            },
+            {
+                id: 'hwid',
+                title: 'HWID SPOOFER',
+                hash: 'spoofers',
+                imageUrl: '/images.home/HWID-Spoofer.webp.9673333fd879bcd7ac73d251b0bbe66e.webp',
+                imageDataUrl: '',
+                products: ['permanent-spoofer', 'temporary-spoofer']
+            },
+            {
+                id: 'bo6',
+                title: 'CALL OF DUTY BLACK OPS 7',
+                hash: 'bo6',
+                imageUrl: '/images.home/BO6.webp.91d8d973248ace5981dafc1603ed6ecf.webp',
+                imageDataUrl: '',
+                products: ['black-ops-6']
+            },
+            {
+                id: 'rust',
+                title: 'RUST',
+                hash: 'rust',
+                imageUrl: '/images.home/Rust.webp.dc3f4da6ca4df59ee6834752f8ed0039.webp',
+                imageDataUrl: '',
+                products: ['rust']
+            }
+        ];
+
+        let homeCardsDirty = false;
+        let homeCardsConfig = { items: [], lastUpdated: null };
+        let draggingHomeCardId = '';
+        let expandedHomeCardId = '';
+
+        const pendingHomeCardEdits = {};
+
+        function getHomeProductsCatalog() {
+            const list = Array.isArray(currentProducts) ? currentProducts : [];
+            return list
+                .filter(p => p && p.id && p.id !== 'home-cards')
+                .map(p => ({
+                    id: String(p.id),
+                    name: String(p.productName || p.name || p.id)
+                }));
+        }
+
+        function loadHomeCardsFromCache() {
+            try {
+                const raw = localStorage.getItem(HOME_CARDS_CACHE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' ? parsed : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function saveHomeCardsToCache(data) {
+            try {
+                localStorage.setItem(HOME_CARDS_CACHE_KEY, JSON.stringify(data || {}));
+                localStorage.setItem(HOME_CARDS_CACHE_TIMESTAMP, Date.now().toString());
+            } catch (e) {
+            }
+        }
+
+        function createHomeCardId() {
+            return 'home-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+        }
+
+        function escapeHtml(value) {
+            const str = value === null || value === undefined ? '' : String(value);
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function normalizeHomeCardItem(input) {
+            const raw = input && typeof input === 'object' ? input : {};
+            const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : createHomeCardId();
+            return {
+                id,
+                title: typeof raw.title === 'string' ? raw.title : '',
+                hash: typeof raw.hash === 'string' ? raw.hash : '',
+                imageUrl: typeof raw.imageUrl === 'string' ? raw.imageUrl : '',
+                imageDataUrl: typeof raw.imageDataUrl === 'string' ? raw.imageDataUrl : '',
+                products: Array.isArray(raw.products) ? raw.products.filter(p => typeof p === 'string' && p.trim()) : []
+            };
+        }
+
+        function normalizeHomeCardsConfig(input) {
+            const data = input && typeof input === 'object' ? input : {};
+            const itemsIn = Array.isArray(data.items) ? data.items : null;
+            if (itemsIn) {
+                const items = itemsIn.map(normalizeHomeCardItem);
+                return {
+                    items,
+                    lastUpdated: typeof data.lastUpdated === 'string' ? data.lastUpdated : null
+                };
+            }
+
+            const legacyCards = data.cards && typeof data.cards === 'object' ? data.cards : null;
+            if (legacyCards) {
+                const items = DEFAULT_HOME_CARDS_ITEMS.map(def => {
+                    const legacy = legacyCards[def.id] && typeof legacyCards[def.id] === 'object' ? legacyCards[def.id] : {};
+                    return {
+                        ...def,
+                        imageUrl: typeof legacy.imageUrl === 'string' ? legacy.imageUrl : (def.imageUrl || ''),
+                        imageDataUrl: typeof legacy.imageDataUrl === 'string' ? legacy.imageDataUrl : ''
+                    };
+                });
+                return {
+                    items,
+                    lastUpdated: typeof data.lastUpdated === 'string' ? data.lastUpdated : null
+                };
+            }
+
+            return { items: DEFAULT_HOME_CARDS_ITEMS.map(normalizeHomeCardItem), lastUpdated: null };
+        }
+
+        function getEffectiveHomeCardImage(item) {
+            const id = item && item.id ? item.id : '';
+            const edit = id && pendingHomeCardEdits[id] ? pendingHomeCardEdits[id] : null;
+            if (edit && edit.cleared) return '';
+            if (edit && typeof edit.pendingDataUrl === 'string' && edit.pendingDataUrl.trim()) return edit.pendingDataUrl.trim();
+            const url = typeof edit?.imageUrl === 'string' ? edit.imageUrl.trim() : '';
+            if (url) return url;
+            const storedData = typeof item.imageDataUrl === 'string' ? item.imageDataUrl.trim() : '';
+            const storedUrl = typeof item.imageUrl === 'string' ? item.imageUrl.trim() : '';
+            return storedData || storedUrl;
+        }
+
+        function renderHomeCardsPanel() {
+            const grid = document.getElementById('homeCardsGrid');
+            if (!grid) return;
+
+            const items = Array.isArray(homeCardsConfig.items) ? homeCardsConfig.items : [];
+            if (items.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1;color:rgba(255,255,255,0.7);">No cards yet. Click Add Card.</div>';
+            } else {
+                grid.innerHTML = items.map(item => {
+                    const title = (item.title || '').trim();
+                    const imageSrc = getEffectiveHomeCardImage(item);
+                    const edit = pendingHomeCardEdits[item.id] || {};
+                    const urlValue = typeof edit.imageUrl === 'string' ? edit.imageUrl : (typeof item.imageUrl === 'string' ? item.imageUrl : '');
+                    const safeTitle = escapeHtml(title || '');
+                    const safeUrlValue = escapeHtml(urlValue || '');
+                    const previewSrc = normalizeStoredImageUrl(imageSrc);
+
+                    const products = Array.isArray(item.products) ? item.products : [];
+                    const selectedProducts = (products.length ? products : []).map(p => String(p || '').trim()).filter(Boolean);
+                    const productsCountLabel = selectedProducts.length === 1 ? '1 product' : `${selectedProducts.length} products`;
+                    const hashValue = typeof item.hash === 'string' ? item.hash.trim() : '';
+                    const hashLabel = hashValue ? `#${hashValue}` : '';
+
+                    return (
+                        '<div class="home-card-editor" draggable="true" data-item-id="' + escapeHtml(item.id) + '" '
+                            + 'style="position:relative;display:grid;gap:10px;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.03);">'
+                            + '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">'
+                                + '<div style="display:flex;align-items:center;gap:10px;min-width:0;">'
+                                    + '<div style="width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;'
+                                        + 'border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.25);cursor:grab;flex:0 0 auto;">↕</div>'
+                                + '<div style="font-weight:700;color:rgba(255,255,255,0.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (safeTitle || 'Card') + '</div>'
+                                + '</div>'
+                                + '<div style="display:flex;gap:8px;align-items:center;">'
+                                    + '<button type="button" class="btn btn-sm" onclick="editHomeCard(\'' + escapeHtml(item.id) + '\')">Edit</button>'
+                                    + '<button type="button" class="btn btn-sm btn-delete" data-action="remove">Remove</button>'
+                                + '</div>'
+                            + '</div>'
+                            + '<div style="position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.25);aspect-ratio:348/450;">'
+                                + '<img data-role="preview" src="' + escapeHtml(previewSrc || EMPTY_PREVIEW_IMG) + '" alt="" onerror="this.src=\'' + EMPTY_PREVIEW_IMG + '\'" '
+                                    + 'style="width:100%;height:100%;object-fit:cover;display:block;">'
+                                + '<div data-role="preview-title" style="position:absolute;left:14px;bottom:14px;font-weight:900;font-size:1.35rem;letter-spacing:0.5px;'
+                                    + 'color:#fff;text-shadow:0 2px 10px rgba(0,0,0,0.7);max-width:calc(100% - 28px);line-height:1.05;">'
+                                    + (safeTitle || '')
+                                + '</div>'
+                            + '</div>'
+                            + '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">'
+                                + '<div style="color:rgba(255,255,255,0.65);font-size:0.85rem;">' + escapeHtml(productsCountLabel) + '</div>'
+                                + '<div style="color:rgba(255,255,255,0.65);font-size:0.85rem;">' + escapeHtml(hashLabel) + '</div>'
+                            + '</div>'
+                        + '</div>'
+                    );
+                }).join('');
+            }
+
+            const hint = document.getElementById('homeCardsHint');
+            if (hint) {
+                const ts = homeCardsConfig.lastUpdated ? String(homeCardsConfig.lastUpdated) : '';
+                hint.textContent = ts ? `Last updated: ${ts}` : 'Saved in Firestore: productStatuses/home-cards';
+            }
+        }
+
+        function readHomeCardsFromDom() {
+            const grid = document.getElementById('homeCardsGrid');
+            if (!grid) return [];
+            const editors = Array.from(grid.querySelectorAll('.home-card-editor'));
+            const existingById = {};
+            (homeCardsConfig.items || []).forEach(it => {
+                if (it && it.id) existingById[it.id] = it;
+            });
+
+            return editors.map(editor => {
+                const id = editor.dataset.itemId || createHomeCardId();
+                const titleEl = editor.querySelector('[data-role="title"]');
+                const urlEl = editor.querySelector('[data-role="url"]');
+                const existing = existingById[id] || { id, title: '', hash: '', imageUrl: '', imageDataUrl: '', products: [] };
+                const title = titleEl ? String(titleEl.value || '').trim() : (existing.title || '');
+                const hashEl = editor.querySelector('[data-role="hash"]');
+                const hash = hashEl ? String(hashEl.value || '').trim() : (existing.hash || '');
+                const urlInput = urlEl ? String(urlEl.value || '').trim() : '';
+                const hasProductsUi = !!editor.querySelector('input[type="checkbox"][data-role="product"]');
+                const products = Array.from(editor.querySelectorAll('input[type="checkbox"][data-role="product"]:checked'))
+                    .map(el => String(el.value || '').trim())
+                    .filter(Boolean);
+                const edit = pendingHomeCardEdits[id] || {};
+
+                let imageUrl = existing.imageUrl || '';
+                let imageDataUrl = existing.imageDataUrl || '';
+
+                if (edit.cleared) {
+                    imageUrl = '';
+                    imageDataUrl = '';
+                } else if (typeof edit.pendingDataUrl === 'string' && edit.pendingDataUrl.trim()) {
+                    imageUrl = '';
+                    imageDataUrl = edit.pendingDataUrl.trim();
+                } else if (urlInput) {
+                    imageUrl = normalizeStoredImageUrl(urlInput);
+                    imageDataUrl = '';
+                }
+
+                return { id, title, hash, imageUrl, imageDataUrl, products: hasProductsUi ? products : (existing.products || []) };
+            });
+        }
+
+        function updateSingleHomeCardPreview(editor) {
+            const id = editor && editor.dataset ? editor.dataset.itemId : '';
+            const titleEl = editor ? editor.querySelector('[data-role="title"]') : null;
+            const previewTitle = editor ? editor.querySelector('[data-role="preview-title"]') : null;
+            if (previewTitle) {
+                previewTitle.textContent = titleEl ? String(titleEl.value || '').trim() : '';
+            }
+            const currentItems = readHomeCardsFromDom();
+            const item = currentItems.find(it => it.id === id);
+            if (!item) return;
+            const previewImg = editor ? editor.querySelector('[data-role="preview"]') : null;
+            if (!previewImg) return;
+            const src = getEffectiveHomeCardImage(item);
+            previewImg.src = normalizeStoredImageUrl(src) || EMPTY_PREVIEW_IMG;
+        }
+
+        async function handleHomeCardFileChange(editor) {
+            const id = editor && editor.dataset ? editor.dataset.itemId : '';
+            const fileEl = editor ? editor.querySelector('[data-role="file"]') : null;
+            if (!id || !fileEl) return;
+            const file = fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+            if (!file) return;
+            if (!isImageFileValid(file)) {
+                showNotification('Invalid image file (must be image/* and <= 5MB)', 'error');
+                fileEl.value = '';
+                return;
+            }
+            try {
+                const dataUrl = await fileToOptimizedWebpDataUrl(file, 696, 900, 0.86);
+                if (!dataUrl) {
+                    showNotification('Failed to process image', 'error');
+                    return;
+                }
+                if (estimateDataUrlBytes(dataUrl) > MAX_IMAGE_BYTES) {
+                    showNotification('Optimized image is still too large (>5MB)', 'error');
+                    return;
+                }
+                pendingHomeCardEdits[id] = { ...(pendingHomeCardEdits[id] || {}), pendingDataUrl: dataUrl, cleared: false };
+                homeCardsDirty = true;
+                const urlEl = editor.querySelector('[data-role="url"]');
+                if (urlEl) urlEl.value = '';
+                updateSingleHomeCardPreview(editor);
+            } catch (e) {
+                showNotification('Failed to process image', 'error');
+            }
+        }
+
+        function moveHomeCard(dragId, targetId, position) {
+            if (!dragId || !targetId || dragId === targetId) return;
+            const items = Array.isArray(homeCardsConfig.items) ? [...homeCardsConfig.items] : [];
+            const from = items.findIndex(it => it.id === dragId);
+            const to = items.findIndex(it => it.id === targetId);
+            if (from === -1 || to === -1) return;
+            const [moved] = items.splice(from, 1);
+            const insertAfter = position === 'after';
+            let insertIndex;
+            if (from < to) {
+                insertIndex = insertAfter ? to : Math.max(0, to - 1);
+            } else {
+                insertIndex = insertAfter ? to + 1 : to;
+            }
+            items.splice(insertIndex, 0, moved);
+            homeCardsConfig.items = items;
+            homeCardsDirty = true;
+            renderHomeCardsPanel();
+            bindHomeCardsPanelEvents();
+        }
+
+        function bindHomeCardsPanelEvents() {
+            const grid = document.getElementById('homeCardsGrid');
+            if (!grid) return;
+
+            const clearDropIndicators = () => {
+                grid.querySelectorAll('.home-card-editor').forEach(el => {
+                    el.classList.remove('drag-over', 'drop-before', 'drop-after', 'dragging');
+                    delete el.dataset.dropPosition;
+                });
+            };
+
+            grid.querySelectorAll('.home-card-editor').forEach(editor => {
+                editor.addEventListener('dragstart', (e) => {
+                    draggingHomeCardId = editor.dataset.itemId || '';
+                    if (e.dataTransfer) {
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', draggingHomeCardId);
+                    }
+                    editor.classList.add('dragging');
+                });
+
+                editor.addEventListener('dragend', () => {
+                    draggingHomeCardId = '';
+                    clearDropIndicators();
+                });
+
+                editor.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+
+                    const rect = editor.getBoundingClientRect();
+                    const clientX = typeof e.clientX === 'number' ? e.clientX : rect.left;
+                    const isAfter = clientX > rect.left + rect.width / 2;
+
+                    grid.querySelectorAll('.home-card-editor').forEach(el => {
+                        if (el !== editor) {
+                            el.classList.remove('drag-over', 'drop-before', 'drop-after');
+                            delete el.dataset.dropPosition;
+                        }
+                    });
+
+                    editor.classList.add('drag-over');
+                    editor.classList.toggle('drop-after', isAfter);
+                    editor.classList.toggle('drop-before', !isAfter);
+                    editor.dataset.dropPosition = isAfter ? 'after' : 'before';
+                });
+
+                editor.addEventListener('dragleave', (e) => {
+                    const related = e.relatedTarget;
+                    if (related && editor.contains(related)) return;
+                    editor.classList.remove('drag-over', 'drop-before', 'drop-after');
+                    delete editor.dataset.dropPosition;
+                });
+
+                editor.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const targetId = editor.dataset.itemId || '';
+                    const sourceId = (e.dataTransfer && e.dataTransfer.getData('text/plain')) ? e.dataTransfer.getData('text/plain') : draggingHomeCardId;
+                    const pos = editor.dataset.dropPosition || 'before';
+                    clearDropIndicators();
+                    moveHomeCard(sourceId, targetId, pos);
+                });
+
+                const titleEl = editor.querySelector('[data-role="title"]');
+                if (titleEl) {
+                    titleEl.addEventListener('input', () => {
+                        homeCardsDirty = true;
+                        updateSingleHomeCardPreview(editor);
+                    });
+                }
+
+                const hashEl = editor.querySelector('[data-role="hash"]');
+                if (hashEl) {
+                    hashEl.addEventListener('input', () => {
+                        homeCardsDirty = true;
+                    });
+                }
+
+                editor.querySelectorAll('[data-action="toggle-edit"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = editor.dataset.itemId || '';
+                        expandedHomeCardId = expandedHomeCardId === id ? '' : id;
+                        renderHomeCardsPanel();
+                        bindHomeCardsPanelEvents();
+                    });
+                });
+
+                const urlEl = editor.querySelector('[data-role="url"]');
+                if (urlEl) {
+                    urlEl.addEventListener('input', () => {
+                        const id = editor.dataset.itemId || '';
+                        if (!id) return;
+                        pendingHomeCardEdits[id] = { ...(pendingHomeCardEdits[id] || {}), imageUrl: urlEl.value || '', pendingDataUrl: '', cleared: false };
+                        homeCardsDirty = true;
+                        updateSingleHomeCardPreview(editor);
+                    });
+                }
+
+                const fileEl = editor.querySelector('[data-role="file"]');
+                if (fileEl) {
+                    fileEl.addEventListener('change', () => handleHomeCardFileChange(editor));
+                }
+
+                editor.querySelectorAll('[data-action="clear"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = editor.dataset.itemId || '';
+                        if (!id) return;
+                        pendingHomeCardEdits[id] = { ...(pendingHomeCardEdits[id] || {}), pendingDataUrl: '', imageUrl: '', cleared: true };
+                        const urlEl = editor.querySelector('[data-role="url"]');
+                        if (urlEl) urlEl.value = '';
+                        const fileEl = editor.querySelector('[data-role="file"]');
+                        if (fileEl) fileEl.value = '';
+                        homeCardsDirty = true;
+                        updateSingleHomeCardPreview(editor);
+                    });
+                });
+
+                editor.querySelectorAll('[data-action="remove"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = editor.dataset.itemId || '';
+                        if (!id) return;
+                        homeCardsConfig.items = (homeCardsConfig.items || []).filter(it => it.id !== id);
+                        delete pendingHomeCardEdits[id];
+                        if (expandedHomeCardId === id) expandedHomeCardId = '';
+                        homeCardsDirty = true;
+                        renderHomeCardsPanel();
+                        bindHomeCardsPanelEvents();
+                    });
+                });
+
+                editor.querySelectorAll('input[type="checkbox"][data-role="product"]').forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        homeCardsDirty = true;
+                    });
+                });
+            });
+        }
+
+        async function persistHomeCards(items, opts = {}) {
+            const list = Array.isArray(items) ? items : [];
+            const payload = { items: list, lastUpdated: new Date().toISOString() };
+            const docRef = doc(db, 'productStatuses', 'home-cards');
+            await setDoc(docRef, payload, { merge: true });
+            homeCardsDirty = false;
+            homeCardsConfig = normalizeHomeCardsConfig(payload);
+            saveHomeCardsToCache(homeCardsConfig);
+            renderHomeCardsPanel();
+            bindHomeCardsPanelEvents();
+            if (opts && typeof opts.successMessage === 'string' && opts.successMessage) {
+                showNotification(opts.successMessage, 'success');
+            }
+        }
+
+        function initializeHomeCardsPanel() {
+            const cached = loadHomeCardsFromCache();
+            homeCardsConfig = normalizeHomeCardsConfig(cached || {});
+            saveHomeCardsToCache(homeCardsConfig);
+            renderHomeCardsPanel();
+            bindHomeCardsPanelEvents();
+
+            const addBtn = document.getElementById('addHomeCardBtn');
+            if (addBtn) {
+                addBtn.addEventListener('click', () => {
+                    const id = createHomeCardId();
+                    homeCardsConfig.items = [...(homeCardsConfig.items || []), { id, title: 'NEW CARD', hash: '', imageUrl: '', imageDataUrl: '', products: [] }];
+                    pendingHomeCardEdits[id] = { pendingDataUrl: '', imageUrl: '', cleared: false };
+                    expandedHomeCardId = id;
+                    homeCardsDirty = true;
+                    renderHomeCardsPanel();
+                    bindHomeCardsPanelEvents();
+                });
+            }
+
+            const saveBtn = document.getElementById('saveHomeCardsBtn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', async () => {
+                    try {
+                        const items = readHomeCardsFromDom();
+                        saveBtn.disabled = true;
+                        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                        await persistHomeCards(items, { successMessage: 'Index cards saved' });
+                    } catch (e) {
+                        showNotification('Failed to save index cards', 'error');
+                    } finally {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = 'Save Index Cards';
+                    }
+                });
+            }
+
+            try {
+                const docRef = doc(db, 'productStatuses', 'home-cards');
+                onSnapshot(docRef, (snap) => {
+                    if (!snap || !snap.exists()) return;
+                    const data = snap.data() || {};
+                    const localStamp = typeof homeCardsConfig?.lastUpdated === 'string' ? Date.parse(homeCardsConfig.lastUpdated) : NaN;
+                    const incomingStamp = typeof data?.lastUpdated === 'string' ? Date.parse(data.lastUpdated) : NaN;
+                    if (!homeCardsDirty && Number.isFinite(localStamp) && Number.isFinite(incomingStamp) && incomingStamp < localStamp) {
+                        return;
+                    }
+                    const normalized = normalizeHomeCardsConfig(data);
+                    saveHomeCardsToCache(normalized);
+                    if (!homeCardsDirty) {
+                        homeCardsConfig = normalized;
+                        renderHomeCardsPanel();
+                        bindHomeCardsPanelEvents();
+                    }
+                }, () => {
+                });
+            } catch (e) {
+            }
+        }
+
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeDashboard);
+            document.addEventListener('DOMContentLoaded', () => {
+                initializeHomeCardsPanel();
+                initializeDashboard();
+            });
         } else {
+            initializeHomeCardsPanel();
             initializeDashboard();
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-    <script>
-        // Highlight code on load and apply blur
-        function highlightAndBlur() {
-            if (window.Prism) {
-                Prism.highlightAll();
-                
-                // Re-apply blur after Prism processes the code
-                setTimeout(() => {
-                    const codeElement = document.getElementById('firebaseConfigCode');
-                    if (codeElement) {
-                        // Find and wrap sensitive values in blurred spans
-                        const sensitiveValues = [
-                            'AIzaSyDolzQZPSdzWQiYbqjhlyNkjE9LrYxkb7E',
-                            'solaris-database-b5384.firebaseapp.com',
-                            'solaris-database-b5384',
-                            'solaris-database-b5384.firebasestorage.app',
-                            '229880902004',
-                            '1:229880902004:web:34be022f36ac4157433c21',
-                            'G-27L86KFYG6'
-                        ];
-                        
-                        let html = codeElement.innerHTML;
-                        sensitiveValues.forEach(value => {
-                            // Escape special regex characters
-                            const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                            // Replace the value with wrapped version
-                            const regex = new RegExp(`("${escapedValue}")`, 'g');
-                            html = html.replace(regex, '<span class="sensitive-data blurred">$1</span>');
-                        });
-                        codeElement.innerHTML = html;
-                    }
-                }, 200);
-            }
-        }
-        
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', highlightAndBlur);
-        } else {
-            highlightAndBlur();
-        }
-        
-        // Reveal/Hide sensitive data
-        let isRevealed = false;
-        window.toggleReveal = function() {
-            isRevealed = !isRevealed;
-            const sensitiveElements = document.querySelectorAll('.sensitive-data');
-            const revealBtn = document.getElementById('revealBtn');
-            
-            sensitiveElements.forEach(el => {
-                if (isRevealed) {
-                    el.classList.add('revealed');
-                    el.classList.remove('blurred');
-                } else {
-                    el.classList.remove('revealed');
-                    el.classList.add('blurred');
-                }
-            });
-            
-            if (revealBtn) {
-                revealBtn.innerHTML = isRevealed 
-                    ? '<i class="fas fa-eye-slash"></i> Hide'
-                    : '<i class="fas fa-eye"></i> Reveal';
-            }
-        };
-        
-        // Copy code to clipboard
-        window.copyCode = async function() {
-            const codeText = `// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyDolzQZPSdzWQiYbqjhlyNkjE9LrYxkb7E",
-  authDomain: "solaris-database-b5384.firebaseapp.com",
-  projectId: "solaris-database-b5384",
-  storageBucket: "solaris-database-b5384.firebasestorage.app",
-  messagingSenderId: "229880902004",
-  appId: "1:229880902004:web:34be022f36ac4157433c21",
-  measurementId: "G-27L86KFYG6"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);`;
-            
-            try {
-                await navigator.clipboard.writeText(codeText);
-                const copyBtn = document.getElementById('copyBtn');
-                if (copyBtn) {
-                    const originalText = copyBtn.innerHTML;
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                    copyBtn.style.color = 'rgba(34, 228, 29, 0.9)';
-                    setTimeout(() => {
-                        copyBtn.innerHTML = originalText;
-                        copyBtn.style.color = '';
-                    }, 2000);
-                }
-                if (window.showNotification) {
-                    showNotification('Code copied to clipboard!', 'success');
-                }
-            } catch (error) {
-                console.error('Failed to copy:', error);
-                if (window.showNotification) {
-                    showNotification('Failed to copy code', 'error');
-                }
-            }
-        };
-    </script>
 </body>
 </html>
-

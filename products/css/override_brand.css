@@ -106,36 +106,73 @@ input[type="checkbox"]:checked {
   color: #9dff88 !important;
 }
 
-/* Product preview thumbnails under main image */
-.ccNexusPackage__images {
-  margin-top: 1em;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 160px));
-  gap: 12px;
-  max-width: 200px;
-  justify-content: start;
+:root {
+  --solaris-pill-height: 30px;
+  --solaris-pill-radius: 999px;
+  --solaris-pill-border: rgba(255, 255, 255, 0.10);
+  --solaris-pill-bg: rgba(20, 23, 30, 0.75);
+  --solaris-pill-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 24px rgba(0, 0, 0, 0.35);
 }
 
-.ccNexusPackage__images .product-preview-thumb {
-  position: relative;
-  overflow: hidden;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+#mainBadgesContainer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.ccNexusPackage__images .product-preview-thumb:hover {
-  transform: translateY(-2px);
-  border-color: #ffa60d;
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45);
+#mainBadgesContainer > span,
+.product-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--solaris-pill-height);
+  padding: 0 14px;
+  border-radius: var(--solaris-pill-radius);
+  white-space: nowrap;
 }
 
-.ccNexusPackage__images .product-preview-thumb img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  aspect-ratio: 16 / 9;
+#mainBadgesContainer > span {
+  background: var(--solaris-pill-bg);
+  border: 1px solid var(--solaris-pill-border);
+  box-shadow: var(--solaris-pill-shadow);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.solaris-main-badge {
+  background: var(--solaris-pill-bg);
+  border: 1px solid var(--solaris-pill-border);
+  box-shadow: var(--solaris-pill-shadow);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.solaris-tech-badge {
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+#mainBadgesContainer > span i {
+  color: #ffa60d !important;
+}
+
+.product-status-badge {
+  border: 1px solid var(--solaris-pill-border);
+  box-shadow: var(--solaris-pill-shadow);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.product-status-badge i,
+.product-status-badge .status-text {
+  color: currentColor;
 }

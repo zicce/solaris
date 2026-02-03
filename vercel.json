@@ -75,6 +75,14 @@
     {
       "source": "/products-topics/:path",
       "destination": "/products-topics/:path.html"
+    },
+    {
+      "source": "/product/:id",
+      "destination": "/product.html?id=:id"
+    },
+    {
+      "source": "/:id",
+      "destination": "/product.html?id=:id"
     }
   ]
 }

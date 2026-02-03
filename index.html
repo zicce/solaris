@@ -542,7 +542,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   .cStore_games {
     display: grid;
-    grid-template-columns: repeat(4, 0.65fr);
+    grid-template-columns: repeat(4, minmax(0, 348px));
     grid-gap: 0.8em;
     padding: 0;
     margin: 0;
@@ -550,9 +550,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     justify-content: center;
   }
   .cStoreGame_image {
+    position: relative;
     height: 450px;
     max-height: 470px;
     max-width: 348px;
+  }
+
+  .homeCardLabel {
+    position: absolute;
+    left: 14px;
+    bottom: 14px;
+    font-weight: 900;
+    font-size: 1.55rem;
+    letter-spacing: 0.5px;
+    color: #fff;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+    max-width: calc(100% - 28px);
+    line-height: 1.05;
+    pointer-events: none;
   }
   
   /* Mobile responsive - single column layout */
@@ -739,12 +754,7 @@ Unlock the full potential of every game with our Undetected Cheats. Enjoy our pr
                 <li class="cFooterLinks_column">
                     <h2 class="cFooterLinks_title">Supported Cheats</h2>
                     <div class="cFooterLinks">
-                      <ul class="cFooterLinks_list">
-                        <li><a href="fortnite">Fortnite Private</a></li>
-                        <li><a href="bo6-warzone-external">BO7 External</a></li>
-                        <li><a href="rust">Rust External</a></li>
-                        <li><a href="hwid-unban">HWID Unban</a></li>
-                      </ul>
+                      <ul class="cFooterLinks_list"></ul>
             </ul>
         </div>
     </div>
@@ -1293,12 +1303,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const renderCards = (cards = [], fallbackImage) => cards.map(card => {
     const palette = statusPalette[card.statusType || 'unknown'];
-    const productId = productIdMap[card.name] || '';
-    const priceBlock = card.price ? `
+    const productId = (typeof card.productId === 'string' && card.productId.trim()) ? card.productId.trim() : (productIdMap[card.name] || '');
+    const cachedPrice = (window.getProductMinPriceFromCache && productId) ? window.getProductMinPriceFromCache(productId) : '';
+    const displayPrice = cachedPrice || (card.price || '');
+    const priceBlock = productId ? `
             <div class="cNexusProduct__prices">
               <div class="cNexusProduct_price">
                 <span class="from">From</span>
-                <span class="cNexusPrice">${card.price}</span>
+                <span class="cNexusPrice" data-role="min-price" data-product-id="${productId}">${displayPrice || '—'}</span>
               </div>
             </div>
     ` : '';
@@ -1354,8 +1366,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }).join('');
 
   function showProductCategory(key) {
-    const config = productConfigs[key];
+    const dynamic = window.buildDynamicCategoryConfig ? window.buildDynamicCategoryConfig(key, getCachedStatus) : null;
+    const config = dynamic || productConfigs[key];
     if (!config) {
+      // Unknown key - keep default navigation behavior
       window.location.href = `${key}`;
       return;
     }
@@ -1371,6 +1385,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Render HTML immediately - don't wait for images
+    const emptyCategoryHtml = (!Array.isArray(config.cards) || config.cards.length === 0)
+      ? `
+          <li style="grid-column:1/-1;padding:18px 14px;border:1px solid rgba(255,255,255,0.10);border-radius:12px;background:rgba(0,0,0,0.18);color:rgba(255,255,255,0.8);">
+            No products in this category.
+          </li>
+        `
+      : renderCards(config.cards, config.image);
+
     categoryWrapper.innerHTML = `
       <div class="ipsBox" style="margin-bottom: 1rem;">
         <div class="ipsGrid ipsGrid_collapsePhone ipsFlex ipsFlex-ai:center ipsFlex-jc:between">
@@ -1382,7 +1404,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="ipsWidget_inner">
           <div class="ipsPad_half">
             <ul class="ipsList_reset cNexusCategory_grid ipsClearfix" data-role="carouselItems">
-              ${renderCards(config.cards, config.image)}
+              ${emptyCategoryHtml}
             </ul>
           </div>
         </div>
@@ -1393,6 +1415,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.updateAllProductCardStatuses) {
       // Call immediately for instant cache update
       window.updateAllProductCardStatuses();
+    }
+
+    if (window.updateAllProductCardPrices) {
+      window.updateAllProductCardPrices();
     }
 
     // Force immediate image loading - images should already be in cache from preload
@@ -1427,21 +1453,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  document.querySelectorAll('.product-link').forEach(link => {
-    link.addEventListener('click', (event) => {
-      event.preventDefault();
-      const key = link.getAttribute('data-product-key');
-      // Update URL hash to reflect selected category (e.g., #spoofers)
-      const hash = keyToHash[key] || key;
-      if (hash) location.hash = hash;
-      showProductCategory(key);
-    });
+  grid.addEventListener('click', (event) => {
+    const link = event.target && event.target.closest ? event.target.closest('a.product-link') : null;
+    if (!link) return;
+    const key = link.getAttribute('data-product-key');
+    if (!key) return;
+    const dynamic = window.buildDynamicCategoryConfig ? window.buildDynamicCategoryConfig(key, getCachedStatus) : null;
+    const config = dynamic || productConfigs[key];
+    if (!config) return;
+    event.preventDefault();
+    const card = window.getHomeCardByKey ? window.getHomeCardByKey(key) : null;
+    const customHash = typeof card?.hash === 'string' ? card.hash.trim() : '';
+    const hash = customHash || keyToHash[key] || key;
+    if (hash) location.hash = hash;
+    showProductCategory(key);
   });
 
   // Open category if URL already contains a known hash
   const currentHash = (location.hash || '').replace('#', '').trim();
-  if (currentHash && hashToKey[currentHash]) {
-    showProductCategory(hashToKey[currentHash]);
+  if (currentHash) {
+    const hasDynamic = window.getHomeCardByKey ? !!window.getHomeCardByKey(currentHash) : false;
+    const dynamicKey = window.getHomeCardKeyByHash ? window.getHomeCardKeyByHash(currentHash) : (hasDynamic ? currentHash : '');
+    const initialKey = hashToKey[currentHash] || dynamicKey || (productConfigs[currentHash] ? currentHash : '');
+    if (initialKey) {
+      showProductCategory(initialKey);
+    }
   }
 
   // React to hash changes (browser navigation/back/forward)
@@ -1451,8 +1487,11 @@ document.addEventListener('DOMContentLoaded', () => {
       resetView();
       return;
     }
-    if (hashToKey[h]) {
-      showProductCategory(hashToKey[h]);
+    const hasDynamic = window.getHomeCardByKey ? !!window.getHomeCardByKey(h) : false;
+    const dynamicKey = window.getHomeCardKeyByHash ? window.getHomeCardKeyByHash(h) : (hasDynamic ? h : '');
+    const nextKey = hashToKey[h] || dynamicKey || (productConfigs[h] ? h : '');
+    if (nextKey) {
+      showProductCategory(nextKey);
     }
   });
 });
@@ -1551,7 +1590,7 @@ window.addEventListener('error', function(e) {
 <script type="module">
 // Firebase Product Status Management for Product Cards - Embedded to avoid CORS issues
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, onSnapshot, doc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 // Firebase Configuration for Product Statuses (separate from auth)
 const firebaseConfigStatus = {
@@ -1620,6 +1659,16 @@ function updateProductCardStatus(productId, statusText) {
   statusBadge.style.color = config.color;
 }
 
+const EMPTY_IMG_DATA_URL = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+
+function updateProductCardImage(productId, imageUrl) {
+  if (imageUrl === undefined) return;
+  const url = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+  document.querySelectorAll(`.cNexusProduct[data-product-id="${productId}"] img.ipsImage`).forEach(img => {
+    img.src = url || EMPTY_IMG_DATA_URL;
+  });
+}
+
 // Global function to get status from cache for a product
 window.getProductStatusFromCache = function(productId) {
   const cachedStatuses = loadStatusesFromCache();
@@ -1631,18 +1680,18 @@ window.getProductStatusFromCache = function(productId) {
 
 // Global function to update all product card statuses (called after card rendering)
 window.updateAllProductCardStatuses = function() {
-  const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal', 'ai-aimbot'];
   const cachedStatuses = loadStatusesFromCache();
-  
-  allProductIds.forEach((productId) => {
-    const statusBadge = document.querySelector(`.product-status-badge[data-product-id="${productId}"]`);
-    if (statusBadge) {
-      // Check cache first for instant update
-      if (cachedStatuses && cachedStatuses[productId] && cachedStatuses[productId].status) {
-        updateProductCardStatus(productId, cachedStatuses[productId].status);
-      } else {
-        // Set default to UNKNOWN if not in cache
-        updateProductCardStatus(productId, 'UNKNOWN');
+  document.querySelectorAll('.product-status-badge[data-product-id]').forEach((el) => {
+    const productId = el.getAttribute('data-product-id') || '';
+    if (!productId) return;
+    const statusData = cachedStatuses && cachedStatuses[productId] ? cachedStatuses[productId] : null;
+    const statusText = statusData && statusData.status ? statusData.status : 'UNKNOWN';
+    updateProductCardStatus(productId, statusText);
+    if (statusData) {
+      const mainData = typeof statusData.mainImageDataUrl === 'string' ? statusData.mainImageDataUrl.trim() : '';
+      const mainUrl = typeof statusData.mainImageUrl === 'string' ? statusData.mainImageUrl.trim() : '';
+      if (Object.prototype.hasOwnProperty.call(statusData, 'mainImageDataUrl') || Object.prototype.hasOwnProperty.call(statusData, 'mainImageUrl')) {
+        updateProductCardImage(productId, mainData || mainUrl);
       }
     }
   });
@@ -1652,6 +1701,296 @@ window.updateAllProductCardStatuses = function() {
 const STATUS_CACHE_KEY = 'productStatuses_cache';
 const STATUS_CACHE_TIMESTAMP = 'productStatuses_cache_timestamp';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const PRICE_CACHE_KEY = 'productPrices_cache';
+const PRICE_CACHE_TIMESTAMP = 'productPrices_cache_timestamp';
+const PRICE_CACHE_DURATION = 10 * 60 * 1000;
+
+const HOME_CARDS_CACHE_KEY = 'homeCards_cache';
+const HOME_CARDS_CACHE_TIMESTAMP = 'homeCards_cache_timestamp';
+
+const DEFAULT_HOME_CARDS_ITEMS = [
+  {
+    id: 'fortnite',
+    title: 'FORTNITE',
+    hash: 'fortnite',
+    imageUrl: 'images.home/Fortnite.webp.578d1fc74972b65d4e63696d40ff19e6.webp',
+    imageDataUrl: '',
+    products: ['fortnite-private', 'fortnite-internal', 'ai-aimbot']
+  },
+  {
+    id: 'hwid',
+    title: 'HWID SPOOFER',
+    hash: 'spoofers',
+    imageUrl: 'images.home/HWID-Spoofer.webp.9673333fd879bcd7ac73d251b0bbe66e.webp',
+    imageDataUrl: '',
+    products: ['permanent-spoofer', 'temporary-spoofer']
+  },
+  {
+    id: 'bo6',
+    title: 'CALL OF DUTY BLACK OPS 7',
+    hash: 'bo6',
+    imageUrl: 'images.home/BO6.webp.91d8d973248ace5981dafc1603ed6ecf.webp',
+    imageDataUrl: '',
+    products: ['black-ops-6']
+  },
+  {
+    id: 'rust',
+    title: 'RUST',
+    hash: 'rust',
+    imageUrl: 'images.home/Rust.webp.dc3f4da6ca4df59ee6834752f8ed0039.webp',
+    imageDataUrl: '',
+    products: ['rust']
+  }
+];
+
+function escapeHtml(value) {
+  const str = value === null || value === undefined ? '' : String(value);
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function normalizeStoredImageUrl(input) {
+  const value = (input || '').trim();
+  if (!value) return '';
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value)) return value;
+  if (value.startsWith('/')) return value;
+  const cleaned = value.replace(/^\.+\//, '').replace(/^\/+/, '');
+  return '/' + cleaned;
+}
+
+function loadHomeCardsFromCache() {
+  try {
+    const raw = localStorage.getItem(HOME_CARDS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveHomeCardsToCache(data) {
+  try {
+    localStorage.setItem(HOME_CARDS_CACHE_KEY, JSON.stringify(data || {}));
+    localStorage.setItem(HOME_CARDS_CACHE_TIMESTAMP, Date.now().toString());
+  } catch (e) {}
+}
+
+function parsePriceToNumber(input) {
+  const raw = (input || '').toString().trim();
+  if (!raw) return null;
+  const normalized = raw.replace(',', '.').replace(/[^0-9.]/g, '');
+  const n = parseFloat(normalized);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatEur(n) {
+  if (!Number.isFinite(n)) return '';
+  return '€' + n.toFixed(2);
+}
+
+function loadPricesFromCache() {
+  try {
+    const raw = localStorage.getItem(PRICE_CACHE_KEY);
+    const ts = localStorage.getItem(PRICE_CACHE_TIMESTAMP);
+    if (!raw || !ts) return null;
+    const age = Date.now() - parseInt(ts);
+    if (Number.isFinite(age) && age > PRICE_CACHE_DURATION) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function savePricesToCache(map) {
+  try {
+    localStorage.setItem(PRICE_CACHE_KEY, JSON.stringify(map || {}));
+    localStorage.setItem(PRICE_CACHE_TIMESTAMP, Date.now().toString());
+  } catch (e) {
+  }
+}
+
+window.getProductMinPriceFromCache = function(productId) {
+  const prices = loadPricesFromCache();
+  if (!prices) return '';
+  const v = prices[productId];
+  return typeof v === 'string' ? v : '';
+};
+
+window.updateAllProductCardPrices = function() {
+  const prices = loadPricesFromCache();
+  if (!prices) return;
+  document.querySelectorAll('.cNexusPrice[data-role="min-price"][data-product-id]').forEach(el => {
+    const pid = el.getAttribute('data-product-id') || '';
+    const price = typeof prices[pid] === 'string' ? prices[pid] : '';
+    if (price) el.textContent = price;
+  });
+};
+
+function normalizeHomeCardItem(input) {
+  const raw = input && typeof input === 'object' ? input : {};
+  return {
+    id: typeof raw.id === 'string' ? raw.id.trim() : '',
+    title: typeof raw.title === 'string' ? raw.title : '',
+    hash: typeof raw.hash === 'string' ? raw.hash : '',
+    imageUrl: typeof raw.imageUrl === 'string' ? raw.imageUrl : '',
+    imageDataUrl: typeof raw.imageDataUrl === 'string' ? raw.imageDataUrl : '',
+    products: Array.isArray(raw.products) ? raw.products.filter(p => typeof p === 'string' && p.trim()) : []
+  };
+}
+
+function normalizeHomeCardsConfig(input) {
+  const data = input && typeof input === 'object' ? input : {};
+  if (Array.isArray(data.items)) {
+    const items = data.items.map(normalizeHomeCardItem).filter(it => it.id);
+    return { items: items.length ? items : DEFAULT_HOME_CARDS_ITEMS, lastUpdated: typeof data.lastUpdated === 'string' ? data.lastUpdated : null };
+  }
+  if (data.cards && typeof data.cards === 'object') {
+    const cards = data.cards;
+    const items = DEFAULT_HOME_CARDS_ITEMS.map(def => {
+      const legacy = cards[def.id] && typeof cards[def.id] === 'object' ? cards[def.id] : {};
+      return {
+        ...def,
+        imageUrl: typeof legacy.imageUrl === 'string' ? legacy.imageUrl : def.imageUrl,
+        imageDataUrl: typeof legacy.imageDataUrl === 'string' ? legacy.imageDataUrl : ''
+      };
+    });
+    return { items, lastUpdated: typeof data.lastUpdated === 'string' ? data.lastUpdated : null };
+  }
+  return { items: DEFAULT_HOME_CARDS_ITEMS, lastUpdated: null };
+}
+
+function renderHomeCards(items) {
+  const grid = document.getElementById('product-grid');
+  if (!grid) return;
+  const list = Array.isArray(items) && items.length ? items : DEFAULT_HOME_CARDS_ITEMS;
+
+  grid.innerHTML = list.map(item => {
+    const id = escapeHtml(item.id || '');
+    const title = escapeHtml((item.title || '').trim());
+    const imgSrcRaw = (typeof item.imageDataUrl === 'string' && item.imageDataUrl.trim())
+      ? item.imageDataUrl.trim()
+      : normalizeStoredImageUrl(item.imageUrl || '');
+    const imgSrc = escapeHtml(imgSrcRaw || '');
+    const alt = title ? title : 'Game';
+    const rawHash = typeof item.hash === 'string' ? item.hash.trim() : '';
+    const hashHref = '#' + encodeURIComponent(rawHash || item.id || '');
+    return (
+      '<li class="cStoreGame">'
+        + '<a href="' + hashHref + '" class="product-link" data-product-key="' + id + '">'
+          + '<div class="cStoreGame_image">'
+            + '<img src="' + imgSrc + '" alt="' + escapeHtml(alt) + '" loading="lazy" width="348" height="450" decoding="async">'
+          + '</div>'
+          + '<span class="cStoreGame_name ipsHide">' + title + '</span>'
+        + '</a>'
+      + '</li>'
+    );
+  }).join('');
+}
+
+let homeCardsConfigState = normalizeHomeCardsConfig({});
+
+function getHomeCardByKey(key) {
+  const items = homeCardsConfigState && Array.isArray(homeCardsConfigState.items) ? homeCardsConfigState.items : [];
+  return items.find(it => it && it.id === key) || null;
+}
+
+function getHomeCardKeyByHash(hash) {
+  const h = (hash || '').trim();
+  if (!h) return '';
+  const items = homeCardsConfigState && Array.isArray(homeCardsConfigState.items) ? homeCardsConfigState.items : [];
+  const found = items.find(it => {
+    const hh = typeof it?.hash === 'string' ? it.hash.trim() : '';
+    return (hh && hh === h) || it?.id === h;
+  });
+  return found && found.id ? found.id : '';
+}
+
+function buildCardsForHomeCard(homeCard, getCachedStatusFn) {
+  const ids = Array.isArray(homeCard?.products) ? homeCard.products : [];
+
+  const productDocs = loadStatusesFromCache() || {};
+
+  const productUrlForId = (productId) => {
+    const pid = String(productId || '').trim();
+    if (!pid) return '#';
+    const encoded = encodeURIComponent(pid);
+    const host = (location.hostname || '').toLowerCase();
+    const isLocal = host === 'localhost' || host === '127.0.0.1';
+    return isLocal ? `product.html?id=${encoded}` : `/product/${encoded}`;
+  };
+
+  return ids
+    .map(pid => {
+      const doc = productDocs && productDocs[pid] ? productDocs[pid] : null;
+      const name = (doc && typeof doc.productName === 'string' && doc.productName.trim()) ? doc.productName.trim() : pid;
+      const mainData = doc && typeof doc.mainImageDataUrl === 'string' ? doc.mainImageDataUrl.trim() : '';
+      const mainUrl = doc && typeof doc.mainImageUrl === 'string' ? doc.mainImageUrl.trim() : '';
+      const image = mainData || mainUrl || '';
+      return {
+        name,
+        price: '',
+        statusText: typeof getCachedStatusFn === 'function' ? getCachedStatusFn(pid) : 'UNKNOWN',
+        statusType: 'unknown',
+        link: productUrlForId(pid),
+        image,
+        productId: pid
+      };
+    })
+    .filter(Boolean);
+}
+
+function buildDynamicCategoryConfig(key, getCachedStatusFn) {
+  const card = getHomeCardByKey(key);
+  if (!card) return null;
+  const cards = buildCardsForHomeCard(card, getCachedStatusFn);
+  const title = (card.title || '').trim() ? card.title.trim() + ' Cheats' : 'Products';
+  const cover = (typeof card.imageDataUrl === 'string' && card.imageDataUrl.trim())
+    ? card.imageDataUrl.trim()
+    : normalizeStoredImageUrl(card.imageUrl || (cards[0] ? cards[0].image : ''));
+  return {
+    title,
+    countLabel: cards.length === 1 ? '1 product' : `${cards.length} products`,
+    sortLabel: 'Sort by',
+    image: cover,
+    cards
+  };
+}
+
+window.homeCardsConfigState = homeCardsConfigState;
+window.getHomeCardByKey = getHomeCardByKey;
+window.buildDynamicCategoryConfig = buildDynamicCategoryConfig;
+window.getHomeCardKeyByHash = getHomeCardKeyByHash;
+
+function initializeHomeCardsConfig() {
+  const cached = loadHomeCardsFromCache();
+  if (cached) {
+    const normalized = normalizeHomeCardsConfig(cached);
+    homeCardsConfigState = normalized;
+    window.homeCardsConfigState = homeCardsConfigState;
+    renderHomeCards(normalized.items);
+  }
+
+  try {
+    const cfgRef = doc(dbStatus, 'productStatuses', 'home-cards');
+    onSnapshot(cfgRef, (snap) => {
+      if (!snap || !snap.exists()) return;
+      const data = snap.data() || {};
+      saveHomeCardsToCache(data);
+      const normalized = normalizeHomeCardsConfig(data);
+      homeCardsConfigState = normalized;
+      window.homeCardsConfigState = homeCardsConfigState;
+      renderHomeCards(normalized.items);
+    }, () => {
+    });
+  } catch (e) {}
+}
 
 // Load statuses from cache
 function loadStatusesFromCache() {
@@ -1693,19 +2032,17 @@ async function initializeProductCardStatuses() {
         if (statusData && statusData.status) {
           updateProductCardStatus(productId, statusData.status);
         }
-      });
-      
-      // Also update any cards that might have been rendered before this script ran
-      const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal', 'ai-aimbot'];
-      allProductIds.forEach((productId) => {
-        const statusBadge = document.querySelector(`.product-status-badge[data-product-id="${productId}"]`);
-        if (statusBadge) {
-          const statusData = cachedStatuses[productId];
-          if (statusData && statusData.status) {
-            updateProductCardStatus(productId, statusData.status);
+        if (statusData) {
+          const mainData = typeof statusData.mainImageDataUrl === 'string' ? statusData.mainImageDataUrl.trim() : '';
+          const mainUrl = typeof statusData.mainImageUrl === 'string' ? statusData.mainImageUrl.trim() : '';
+          if (Object.prototype.hasOwnProperty.call(statusData, 'mainImageDataUrl') || Object.prototype.hasOwnProperty.call(statusData, 'mainImageUrl')) {
+            updateProductCardImage(productId, mainData || mainUrl);
           }
         }
       });
+      if (window.updateAllProductCardStatuses) {
+        window.updateAllProductCardStatuses();
+      }
     }
     
     // Get initial statuses from Firebase (with timeout)
@@ -1742,15 +2079,17 @@ async function initializeProductCardStatuses() {
       if (statusData && statusData.status) {
         updateProductCardStatus(productId, statusData.status);
       }
-    });
-    
-    // Set products without status to UNKNOWN
-    const allProductIds = ['permanent-spoofer', 'temporary-spoofer', 'rust', 'black-ops-6', 'fortnite-private', 'fortnite-internal', 'ai-aimbot'];
-    allProductIds.forEach((productId) => {
-      if (!statuses[productId] || !statuses[productId].status) {
-        updateProductCardStatus(productId, "UNKNOWN");
+      if (statusData) {
+        const mainData = typeof statusData.mainImageDataUrl === 'string' ? statusData.mainImageDataUrl.trim() : '';
+        const mainUrl = typeof statusData.mainImageUrl === 'string' ? statusData.mainImageUrl.trim() : '';
+        if (Object.prototype.hasOwnProperty.call(statusData, 'mainImageDataUrl') || Object.prototype.hasOwnProperty.call(statusData, 'mainImageUrl')) {
+          updateProductCardImage(productId, mainData || mainUrl);
+        }
       }
     });
+    if (window.updateAllProductCardStatuses) {
+      window.updateAllProductCardStatuses();
+    }
     
     // Set up real-time listener for future updates
     onSnapshot(statusesRef, (snapshot) => {
@@ -1768,14 +2107,17 @@ async function initializeProductCardStatuses() {
         if (statusData && statusData.status) {
           updateProductCardStatus(productId, statusData.status);
         }
-      });
-      
-      // Set products without status to UNKNOWN
-      allProductIds.forEach((productId) => {
-        if (!updatedStatuses[productId] || !updatedStatuses[productId].status) {
-          updateProductCardStatus(productId, "UNKNOWN");
+        if (statusData) {
+          const mainData = typeof statusData.mainImageDataUrl === 'string' ? statusData.mainImageDataUrl.trim() : '';
+          const mainUrl = typeof statusData.mainImageUrl === 'string' ? statusData.mainImageUrl.trim() : '';
+          if (Object.prototype.hasOwnProperty.call(statusData, 'mainImageDataUrl') || Object.prototype.hasOwnProperty.call(statusData, 'mainImageUrl')) {
+            updateProductCardImage(productId, mainData || mainUrl);
+          }
         }
       });
+      if (window.updateAllProductCardStatuses) {
+        window.updateAllProductCardStatuses();
+      }
     }, (error) => {
       console.error("Error in status subscription:", error);
     });
@@ -1799,11 +2141,76 @@ async function initializeProductCardStatuses() {
   }
 }
 
+async function initializeProductPrices() {
+  try {
+    const cached = loadPricesFromCache();
+    if (cached) {
+      window.updateAllProductCardPrices();
+    }
+
+    const productsRef = collection(dbStatus, 'productStatuses');
+
+    try {
+      onSnapshot(productsRef, (snap) => {
+        const next = {};
+        snap.forEach((docSnap) => {
+          if (docSnap.id === 'home-cards') return;
+          const data = docSnap.data() || {};
+          const variants = Array.isArray(data.variants) ? data.variants : [];
+          const nums = variants
+            .map(v => parsePriceToNumber(v && v.price))
+            .filter(n => typeof n === 'number' && Number.isFinite(n));
+          if (nums.length) {
+            next[docSnap.id] = formatEur(Math.min(...nums));
+          }
+        });
+        savePricesToCache(next);
+        window.updateAllProductCardPrices();
+      }, () => {
+      });
+    } catch (e) {
+    }
+
+    const fetchPromise = getDocs(productsRef);
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase timeout')), 3500));
+    let snapshot;
+    try {
+      snapshot = await Promise.race([fetchPromise, timeoutPromise]);
+    } catch (e) {
+      return;
+    }
+
+    const priceMap = {};
+    snapshot.forEach((docSnap) => {
+      if (docSnap.id === 'home-cards') return;
+      const data = docSnap.data() || {};
+      const variants = Array.isArray(data.variants) ? data.variants : [];
+      const nums = variants
+        .map(v => parsePriceToNumber(v && v.price))
+        .filter(n => typeof n === 'number' && Number.isFinite(n));
+      if (nums.length) {
+        const min = Math.min(...nums);
+        priceMap[docSnap.id] = formatEur(min);
+      }
+    });
+    savePricesToCache(priceMap);
+    window.updateAllProductCardPrices();
+  } catch (e) {
+  }
+}
+
 // Wait for DOM to be fully loaded
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeProductCardStatuses);
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeHomeCardsConfig();
+        initializeProductCardStatuses();
+        initializeProductPrices();
+    });
 } else {
+    initializeHomeCardsConfig();
     initializeProductCardStatuses();
+    initializeProductPrices();
 }
 </script>
+<script type="module" src="supported-cheats-footer.js"></script>
 </body></html>

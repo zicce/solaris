@@ -76,6 +76,21 @@ const server = http.createServer((req, res) => {
           res.end();
           return;
         }
+        const isCleanPath = !path.extname(urlPath);
+        const isRoot = urlPath === '/' || urlPath === '';
+        if (isCleanPath && !isRoot) {
+          const productTemplatePath = './product.html';
+          fs.readFile(productTemplatePath, (fallbackErr, fallbackContent) => {
+            if (fallbackErr) {
+              res.writeHead(404, { 'Content-Type': 'text/html' });
+              res.end('<h1>404 - File Not Found</h1>', 'utf-8');
+              return;
+            }
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(fallbackContent, 'utf-8');
+          });
+          return;
+        }
         res.writeHead(404, { 'Content-Type': 'text/html' });
         res.end('<h1>404 - File Not Found</h1>', 'utf-8');
       } else {
