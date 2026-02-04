@@ -1680,7 +1680,7 @@ window.getProductStatusFromCache = function(productId) {
 
 // Global function to update all product card statuses (called after card rendering)
 window.updateAllProductCardStatuses = function() {
-  const cachedStatuses = loadStatusesFromCache();
+  const cachedStatuses = loadStatusesFromCache({ allowStale: true });
   document.querySelectorAll('.product-status-badge[data-product-id]').forEach((el) => {
     const productId = el.getAttribute('data-product-id') || '';
     if (!productId) return;
@@ -1800,7 +1800,19 @@ function loadPricesFromCache() {
     const ts = localStorage.getItem(PRICE_CACHE_TIMESTAMP);
     if (!raw || !ts) return null;
     const age = Date.now() - parseInt(ts);
-    if (Number.isFinite(age) && age > PRICE_CACHE_DURATION) return null;
+    const allowStale = false;
+    if (!allowStale && Number.isFinite(age) && age > PRICE_CACHE_DURATION) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function loadPricesFromCacheAllowStale() {
+  try {
+    const raw = localStorage.getItem(PRICE_CACHE_KEY);
+    if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === 'object' ? parsed : null;
   } catch (e) {
@@ -1817,14 +1829,14 @@ function savePricesToCache(map) {
 }
 
 window.getProductMinPriceFromCache = function(productId) {
-  const prices = loadPricesFromCache();
+  const prices = loadPricesFromCacheAllowStale();
   if (!prices) return '';
   const v = prices[productId];
   return typeof v === 'string' ? v : '';
 };
 
 window.updateAllProductCardPrices = function() {
-  const prices = loadPricesFromCache();
+  const prices = loadPricesFromCacheAllowStale();
   if (!prices) return;
   document.querySelectorAll('.cNexusPrice[data-role="min-price"][data-product-id]').forEach(el => {
     const pid = el.getAttribute('data-product-id') || '';
@@ -1991,14 +2003,15 @@ function initializeHomeCardsConfig() {
 }
 
 // Load statuses from cache
-function loadStatusesFromCache() {
+function loadStatusesFromCache(opts = {}) {
   try {
     const cached = localStorage.getItem(STATUS_CACHE_KEY);
     const timestamp = localStorage.getItem(STATUS_CACHE_TIMESTAMP);
     
     if (cached && timestamp) {
       const age = Date.now() - parseInt(timestamp);
-      if (age < CACHE_DURATION) {
+      const allowStale = !!(opts && opts.allowStale);
+      if (allowStale || age < CACHE_DURATION) {
         return JSON.parse(cached);
       }
     }
@@ -2006,6 +2019,45 @@ function loadStatusesFromCache() {
     console.warn("Error loading cache:", e);
   }
   return null;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
+async function withTimeout(promise, timeoutMs, label) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      const err = new Error(`Timeout${label ? `: ${label}` : ''}`);
+      err.code = 'TIMEOUT';
+      reject(err);
+    }, Math.max(0, Number(timeoutMs) || 0));
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function getDocsWithRetry(ref, opts = {}) {
+  const attempts = Math.max(1, Number(opts.attempts) || 1);
+  const timeoutMs = Math.max(1000, Number(opts.timeoutMs) || 12000);
+  const baseDelayMs = Math.max(250, Number(opts.baseDelayMs) || 900);
+
+  let lastError;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return await withTimeout(getDocs(ref), timeoutMs, `getDocs attempt ${i}/${attempts}`);
+    } catch (e) {
+      lastError = e;
+      if (i < attempts) {
+        await sleep(baseDelayMs * i);
+      }
+    }
+  }
+  throw lastError;
 }
 
 // Save statuses to cache
@@ -2021,7 +2073,7 @@ function saveStatusesToCache(statuses) {
 async function initializeProductCardStatuses() {
   try {
     // Load from cache first for instant display
-    const cachedStatuses = loadStatusesFromCache();
+    const cachedStatuses = loadStatusesFromCache({ allowStale: true });
     if (cachedStatuses) {
       console.log("📦 Loading statuses from cache...");
       // Update all product cards immediately with cached statuses
@@ -2043,50 +2095,43 @@ async function initializeProductCardStatuses() {
       }
     }
     
-    // Get initial statuses from Firebase (with timeout)
+    // Get initial statuses from Firebase (retry + longer timeout)
     const statusesRef = collection(dbStatus, "productStatuses");
-    
-    // Use Promise.race to add timeout
-    const fetchPromise = getDocs(statusesRef);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Firebase timeout')), 3000)
-    );
-    
+
     let snapshot;
     try {
-      snapshot = await Promise.race([fetchPromise, timeoutPromise]);
+      snapshot = await getDocsWithRetry(statusesRef, { attempts: 3, timeoutMs: 12000, baseDelayMs: 900 });
     } catch (error) {
-      if (error.message === 'Firebase timeout') {
-        console.warn("⏱️ Firebase timeout, using cache");
-        return; // Use cached data
-      }
-      throw error;
+      console.warn("⏱️ Firebase fetch failed, using cache", error);
+      snapshot = null;
+    }
+
+    if (!snapshot) {
+      // Keep real-time listener below; stale cache remains visible.
     }
     
-    const statuses = {};
-    snapshot.forEach((doc) => {
-      statuses[doc.id] = doc.data();
-    });
-    
-    // Save to cache
-    saveStatusesToCache(statuses);
-    
-    // Update all product cards with their statuses from Firebase
-    Object.keys(statuses).forEach((productId) => {
-      const statusData = statuses[productId];
-      if (statusData && statusData.status) {
-        updateProductCardStatus(productId, statusData.status);
-      }
-      if (statusData) {
-        const mainData = typeof statusData.mainImageDataUrl === 'string' ? statusData.mainImageDataUrl.trim() : '';
-        const mainUrl = typeof statusData.mainImageUrl === 'string' ? statusData.mainImageUrl.trim() : '';
-        if (Object.prototype.hasOwnProperty.call(statusData, 'mainImageDataUrl') || Object.prototype.hasOwnProperty.call(statusData, 'mainImageUrl')) {
-          updateProductCardImage(productId, mainData || mainUrl);
+    if (snapshot) {
+      const statuses = {};
+      snapshot.forEach((doc) => {
+        statuses[doc.id] = doc.data();
+      });
+      saveStatusesToCache(statuses);
+      Object.keys(statuses).forEach((productId) => {
+        const statusData = statuses[productId];
+        if (statusData && statusData.status) {
+          updateProductCardStatus(productId, statusData.status);
         }
+        if (statusData) {
+          const mainData = typeof statusData.mainImageDataUrl === 'string' ? statusData.mainImageDataUrl.trim() : '';
+          const mainUrl = typeof statusData.mainImageUrl === 'string' ? statusData.mainImageUrl.trim() : '';
+          if (Object.prototype.hasOwnProperty.call(statusData, 'mainImageDataUrl') || Object.prototype.hasOwnProperty.call(statusData, 'mainImageUrl')) {
+            updateProductCardImage(productId, mainData || mainUrl);
+          }
+        }
+      });
+      if (window.updateAllProductCardStatuses) {
+        window.updateAllProductCardStatuses();
       }
-    });
-    if (window.updateAllProductCardStatuses) {
-      window.updateAllProductCardStatuses();
     }
     
     // Set up real-time listener for future updates
@@ -2141,7 +2186,7 @@ async function initializeProductCardStatuses() {
 
 async function initializeProductPrices() {
   try {
-    const cached = loadPricesFromCache();
+    const cached = loadPricesFromCacheAllowStale();
     if (cached) {
       window.updateAllProductCardPrices();
     }
@@ -2169,11 +2214,9 @@ async function initializeProductPrices() {
     } catch (e) {
     }
 
-    const fetchPromise = getDocs(productsRef);
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase timeout')), 3500));
     let snapshot;
     try {
-      snapshot = await Promise.race([fetchPromise, timeoutPromise]);
+      snapshot = await getDocsWithRetry(productsRef, { attempts: 3, timeoutMs: 12000, baseDelayMs: 900 });
     } catch (e) {
       return;
     }

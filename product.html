@@ -30,6 +30,28 @@
 		<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-11508120112');</script>
 		<style>
 			.purchase-btn{min-width:200px;height:60px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+			body:not(.solarisImagesReady) .ccNexusPackage__image img,body:not(.solarisImagesReady) .ccNexusPackage__images{opacity:0}
+			body.solarisImagesReady .ccNexusPackage__image img,body.solarisImagesReady .ccNexusPackage__images{opacity:1;transition:opacity .12s ease}
+			.solarisGalleryThumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px;width:100%}
+			.solarisGalleryThumb{width:100%;aspect-ratio:16/9;height:auto;object-fit:cover;border-radius:14px;border:0;cursor:pointer;opacity:.86;transition:opacity .15s ease,transform .15s ease;box-shadow:0 14px 30px rgba(0,0,0,0.35)}
+			.solarisGalleryThumb:hover{opacity:1;transform:translateY(-1px)}
+			.solarisGalleryThumb.is-active{opacity:1}
+			.solarisLightbox{position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:99999;display:none;align-items:center;justify-content:center;padding:14px}
+			.solarisLightbox.is-open{display:flex}
+			.solarisLightboxInner{width:100%;max-width:1500px;display:grid;gap:12px}
+			.solarisLightboxTop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+			.solarisLightboxBtn{appearance:none;border:0;background:#f3a826;color:#111;border-radius:999px;cursor:pointer;line-height:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 16px 40px rgba(0,0,0,0.45)}
+			.solarisLightboxBtn:hover{filter:brightness(1.05)}
+			.solarisLightboxBtn:active{filter:brightness(0.98)}
+			.solarisLightboxImgWrap{position:relative}
+			.solarisLightboxImg{width:100%;max-height:86vh;object-fit:contain;border-radius:18px;background:transparent;border:0;display:block;filter:drop-shadow(0 24px 60px rgba(0,0,0,0.55))}
+			.solarisLightboxNav{width:52px;height:52px}
+			#solarisLightboxPrev{position:fixed;left:18px;top:50%;transform:translateY(-50%);z-index:100000}
+			#solarisLightboxNext{position:fixed;right:18px;top:50%;transform:translateY(-50%);z-index:100000}
+			#solarisLightboxClose{position:fixed;right:18px;top:18px;width:52px;height:52px;z-index:100000}
+			#solarisLightboxClose span{display:none}
+			#solarisLightboxClose i{font-size:18px}
+			.solarisLightboxCounter{opacity:.8;font-size:13px}
 		</style>
 		<script src="https://cdn.storrik.io/embed.js" async></script>
 		
@@ -290,6 +312,7 @@
 			};
 
 			const STATUS_CACHE_KEY = 'productStatuses_cache';
+			const STATUS_CACHE_TIMESTAMP = 'productStatuses_cache_timestamp';
 			const EMPTY_IMG_DATA_URL = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
 
 			const STATUS_CONFIG = {
@@ -325,6 +348,16 @@
 					return cached ? JSON.parse(cached) : null;
 				} catch (e) {
 					return null;
+				}
+			}
+
+			function getStatusesCacheAgeMs() {
+				try {
+					const ts = localStorage.getItem(STATUS_CACHE_TIMESTAMP);
+					const n = ts ? parseInt(ts, 10) : NaN;
+					return Number.isFinite(n) ? (Date.now() - n) : Infinity;
+				} catch (e) {
+					return Infinity;
 				}
 			}
 
@@ -374,34 +407,149 @@
 				});
 			}
 
-			function updateProductImages(mainImageUrl, galleryImageUrls) {
+			const solarisGalleryState = {
+				images: [],
+				index: 0,
+				bound: false
+			};
+
+			function ensureSolrisLightbox() {
+				let root = document.getElementById('solarisLightbox');
+				if (root) return root;
+				root = document.createElement('div');
+				root.id = 'solarisLightbox';
+				root.className = 'solarisLightbox';
+				root.setAttribute('role', 'dialog');
+				root.setAttribute('aria-modal', 'true');
+				root.innerHTML = ''
+					+ '<div class="solarisLightboxInner" role="document">'
+					+ '<div class="solarisLightboxTop">'
+					+ '<div class="solarisLightboxCounter" id="solarisLightboxCounter"></div>'
+					+ '<button type="button" class="solarisLightboxBtn" id="solarisLightboxClose" aria-label="Close preview"><i class="fa fa-times"></i><span>Close</span></button>'
+					+ '</div>'
+					+ '<div class="solarisLightboxImgWrap">'
+					+ '<img class="solarisLightboxImg" id="solarisLightboxImg" alt="Preview">'
+					+ '<button type="button" class="solarisLightboxBtn solarisLightboxNav prev" id="solarisLightboxPrev" aria-label="Previous image"><i class="fa fa-chevron-left"></i></button>'
+					+ '<button type="button" class="solarisLightboxBtn solarisLightboxNav next" id="solarisLightboxNext" aria-label="Next image"><i class="fa fa-chevron-right"></i></button>'
+					+ '</div>'
+					+ '</div>';
+				document.body.appendChild(root);
+				return root;
+			}
+
+			function setSolrisLightboxIndex(nextIndex) {
+				const images = Array.isArray(solarisGalleryState.images) ? solarisGalleryState.images : [];
+				if (!images.length) return;
+				const max = images.length;
+				const idx = ((Number(nextIndex) || 0) % max + max) % max;
+				solarisGalleryState.index = idx;
+				const img = document.getElementById('solarisLightboxImg');
+				const counter = document.getElementById('solarisLightboxCounter');
+				if (img) img.src = images[idx] || EMPTY_IMG_DATA_URL;
+				if (counter) counter.textContent = `${idx + 1} / ${max}`;
+			}
+
+			function openSolrisLightbox(startIndex) {
+				const root = ensureSolrisLightbox();
+				root.classList.add('is-open');
+				document.documentElement.style.overflow = 'hidden';
+				document.body.style.overflow = 'hidden';
+				setSolrisLightboxIndex(startIndex);
+			}
+
+			function closeSolrisLightbox() {
+				const root = document.getElementById('solarisLightbox');
+				if (!root) return;
+				root.classList.remove('is-open');
+				document.documentElement.style.overflow = '';
+				document.body.style.overflow = '';
+			}
+
+			function bindSolrisLightboxOnce() {
+				if (solarisGalleryState.bound) return;
+				solarisGalleryState.bound = true;
+				const root = ensureSolrisLightbox();
+				const closeBtn = document.getElementById('solarisLightboxClose');
+				const prevBtn = document.getElementById('solarisLightboxPrev');
+				const nextBtn = document.getElementById('solarisLightboxNext');
+				const img = document.getElementById('solarisLightboxImg');
+				if (closeBtn) closeBtn.addEventListener('click', closeSolrisLightbox);
+				if (prevBtn) prevBtn.addEventListener('click', () => setSolrisLightboxIndex(solarisGalleryState.index - 1));
+				if (nextBtn) nextBtn.addEventListener('click', () => setSolrisLightboxIndex(solarisGalleryState.index + 1));
+				if (root) root.addEventListener('click', (e) => {
+					if (e.target === root) closeSolrisLightbox();
+				});
+				if (img) img.addEventListener('click', () => setSolrisLightboxIndex(solarisGalleryState.index + 1));
+				document.addEventListener('keydown', (e) => {
+					const rootNow = document.getElementById('solarisLightbox');
+					if (!rootNow || !rootNow.classList.contains('is-open')) return;
+					if (e.key === 'Escape') closeSolrisLightbox();
+					if (e.key === 'ArrowLeft') setSolrisLightboxIndex(solarisGalleryState.index - 1);
+					if (e.key === 'ArrowRight') setSolrisLightboxIndex(solarisGalleryState.index + 1);
+				});
+			}
+
+			function updateProductImages(mainImageUrl, galleryImageUrls, opts = {}) {
 				const mainImg = document.querySelector('.ccNexusPackage__image img');
 				if (!mainImg) return;
+				const markReady = opts && opts.markReady === true;
+				const clearReady = opts && opts.clearReady === true;
 				const mainUrl = typeof mainImageUrl === 'string' ? normalizeStoredImageUrl(mainImageUrl.trim()) : '';
-				mainImg.src = mainUrl || EMPTY_IMG_DATA_URL;
-				const mainAnchor = mainImg.closest('a');
-				if (mainAnchor) mainAnchor.href = mainUrl || '#';
-				const container = document.querySelector('.ccNexusPackage__images');
-				if (!container) return;
 				const urls = Array.isArray(galleryImageUrls) ? galleryImageUrls : [];
-				const thumbs = urls.map(u => (typeof u === 'string' ? normalizeStoredImageUrl(u.trim()) : '')).filter(Boolean).slice(0, 3);
-				if (thumbs.length === 0) {
-					container.innerHTML = '';
-					return;
+				const gallery = urls
+					.map(u => (typeof u === 'string' ? normalizeStoredImageUrl(u.trim()) : ''))
+					.filter(Boolean)
+					.slice(0, 3);
+
+				const all = [mainUrl, ...gallery].filter(Boolean);
+				solarisGalleryState.images = all;
+				solarisGalleryState.index = 0;
+
+				mainImg.src = mainUrl || EMPTY_IMG_DATA_URL;
+				mainImg.style.cursor = solarisGalleryState.images.length ? 'zoom-in' : '';
+				const mainAnchor = mainImg.closest('a');
+				if (mainAnchor) {
+					mainAnchor.href = mainUrl || '#';
+					mainAnchor.onclick = function(e) {
+						if (!solarisGalleryState.images.length) return;
+						e.preventDefault();
+						bindSolrisLightboxOnce();
+						openSolrisLightbox(solarisGalleryState.index);
+					};
 				}
-				container.innerHTML = '<div style="display:flex;gap:10px;margin-top:12px;">'
-					+ thumbs.map((u, idx) => '<img src="' + escapeHtml(u) + '" data-role="thumb" style="width:96px;height:60px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,0.12);cursor:pointer;opacity:' + (idx === 0 ? '1' : '0.75') + ';">').join('')
-					+ '</div>';
-				const thumbEls = container.querySelectorAll('img[data-role="thumb"]');
-				thumbEls.forEach(el => {
-					el.addEventListener('click', () => {
-						mainImg.src = el.src;
-						const a = mainImg.closest('a');
-						if (a) a.href = el.src;
-						thumbEls.forEach(t => { t.style.opacity = '0.75'; });
-						el.style.opacity = '1';
-					});
-				});
+
+				const container = document.querySelector('.ccNexusPackage__images');
+				if (container) {
+					if (!gallery.length) {
+						container.innerHTML = '';
+					} else {
+						container.style.width = '100%';
+						container.style.display = 'block';
+						container.innerHTML = '<div class="solarisGalleryThumbs" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px;width:100%;">'
+							+ gallery.map((u, idx) => {
+								const active = idx === 0 ? ' is-active' : '';
+								return '<img src="' + escapeHtml(u) + '" class="solarisGalleryThumb' + active + '" data-role="thumb" data-index="' + (idx + 1) + '" alt="Gallery image ' + (idx + 1) + '" style="display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:14px;border:0;">';
+							}).join('')
+							+ '</div>';
+						const thumbEls = Array.from(container.querySelectorAll('img[data-role="thumb"]'));
+						thumbEls.forEach(el => {
+							el.addEventListener('click', () => {
+								const idx = parseInt(el.getAttribute('data-index') || '0', 10);
+								if (!Number.isFinite(idx) || idx < 0 || idx >= solarisGalleryState.images.length) return;
+								solarisGalleryState.index = idx;
+								thumbEls.forEach(t => t.classList.remove('is-active'));
+								el.classList.add('is-active');
+								bindSolrisLightboxOnce();
+								openSolrisLightbox(idx);
+							});
+						});
+					}
+				}
+
+				if (document.body) {
+					if (clearReady) document.body.classList.remove('solarisImagesReady');
+					if (markReady) document.body.classList.add('solarisImagesReady');
+				}
 			}
 
 			function selectVariant(productId, variantName, price, button) {
@@ -550,7 +698,9 @@
 				if (meta) meta.setAttribute('content', desc || (productName || 'Product'));
 			}
 
-			function applyProductData(productId, productData) {
+			function applyProductData(productId, productData, opts = {}) {
+				const source = opts && typeof opts.source === 'string' ? opts.source : 'remote';
+				const cacheAgeMs = opts && typeof opts.cacheAgeMs === 'number' ? opts.cacheAgeMs : Infinity;
 				const badge = document.querySelector('.product-status-badge');
 				if (badge) badge.setAttribute('data-product-id', productId);
 
@@ -565,7 +715,7 @@
 					updateProductVariants(productId, []);
 					updateProductSellhubId('');
 					updateProductMetadata('', '', productId);
-					updateProductImages('', []);
+					updateProductImages('', [], { clearReady: true });
 					return;
 				}
 
@@ -585,7 +735,17 @@
 					const u = typeof galleryUrl[i] === 'string' ? galleryUrl[i].trim() : '';
 					return d || u;
 				});
-				updateProductImages(mainData || mainUrl, galleryImages);
+				if (source === 'cache') {
+					const hasAnyImage = !!((mainData || mainUrl) || (galleryImages && galleryImages.some(v => typeof v === 'string' && v.trim())));
+					const allowCachedImages = hasAnyImage && cacheAgeMs <= 60 * 1000;
+					if (allowCachedImages) {
+						updateProductImages(mainData || mainUrl, galleryImages, { markReady: true });
+					} else {
+						updateProductImages('', [], { clearReady: true });
+					}
+				} else {
+					updateProductImages(mainData || mainUrl, galleryImages, { markReady: true });
+				}
 
 				updateBadges('mainBadgesContainer', productData.mainBadges);
 				updateTechBadges(productData.techBadges);
@@ -600,7 +760,7 @@
 			} else {
 				const cached = loadStatusesFromCache();
 				if (cached && cached[PRODUCT_ID]) {
-					applyProductData(PRODUCT_ID, cached[PRODUCT_ID]);
+					applyProductData(PRODUCT_ID, cached[PRODUCT_ID], { source: 'cache', cacheAgeMs: getStatusesCacheAgeMs() });
 				}
 
 				const appStatus = initializeApp(firebaseConfigStatus, "ProductGeneric");
