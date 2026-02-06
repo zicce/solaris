@@ -1179,6 +1179,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
+// Helper function to check if a string looks like a URL (must be defined before DOMContentLoaded)
+function isUrl(str) {
+  if (typeof str !== 'string') return false;
+  const trimmed = str.trim();
+  return /^https?:\/\//i.test(trimmed) || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed) || trimmed.includes('://');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const sectionTitle = document.querySelector('.cStore_wrapper .cStore_title');
   const grid = document.getElementById('product-grid');
@@ -1303,7 +1310,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const renderCards = (cards = [], fallbackImage) => cards.map(card => {
     const palette = statusPalette[card.statusType || 'unknown'];
-    const productId = (typeof card.productId === 'string' && card.productId.trim()) ? card.productId.trim() : (productIdMap[card.name] || '');
+    
+    // Ensure card.name is not a URL - final safety check before rendering
+    let displayName = card.name || '';
+    if (typeof displayName === 'string' && displayName.trim()) {
+      const trimmedName = displayName.trim();
+      // If name looks like a URL, use productId as fallback
+      if (isUrl(trimmedName)) {
+        displayName = card.productId || 'Product';
+      } else {
+        displayName = trimmedName;
+      }
+    } else {
+      displayName = card.productId || 'Product';
+    }
+    
+    const productId = (typeof card.productId === 'string' && card.productId.trim()) ? card.productId.trim() : (productIdMap[displayName] || '');
     const cachedPrice = (window.getProductMinPriceFromCache && productId) ? window.getProductMinPriceFromCache(productId) : '';
     const displayPrice = cachedPrice || (card.price || '');
     const priceBlock = productId ? `
@@ -1346,11 +1368,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return `
       <li class="ipsCarousel_item cNexusProduct cNexusProduct_mini" data-product-id="${productId}">
         <a href="${card.link}" class="cNexusPackage_img">
-          <img src="${card.image || fallbackImage}" class="ipsImage" width="300" height="auto" alt="${card.name}" loading="eager" decoding="async" style="display:block;max-width:100%;height:auto;">
+          <img src="${card.image || fallbackImage}" class="ipsImage" width="300" height="auto" alt="${displayName}" loading="eager" decoding="async" style="display:block;max-width:100%;height:auto;">
         </a>
         <div>
           <div class="cStorePackage_header">
-            <h2 class="cNexusProduct_title ipsType_normal ipsType_unbold ipsType_reset ipsType_blendLinks">${card.name}</h2>
+            <h2 class="cNexusProduct_title ipsType_normal ipsType_unbold ipsType_reset ipsType_blendLinks">${displayName}</h2>
             ${priceBlock}
           </div>
           <div class="productStatus">
@@ -1411,10 +1433,15 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
     
-    // Update product card statuses immediately after rendering (from cache and Firebase)
+
     if (window.updateAllProductCardStatuses) {
-      // Call immediately for instant cache update
+     
       window.updateAllProductCardStatuses();
+    }
+    
+
+    if (window.updateAllProductCardNames) {
+      window.updateAllProductCardNames();
     }
 
     if (window.updateAllProductCardPrices) {
@@ -1669,7 +1696,7 @@ function updateProductCardImage(productId, imageUrl) {
   });
 }
 
-// Global function to get status from cache for a product
+// ass shit
 window.getProductStatusFromCache = function(productId) {
   const cachedStatuses = loadStatusesFromCache();
   if (cachedStatuses && cachedStatuses[productId] && cachedStatuses[productId].status) {
@@ -1678,13 +1705,45 @@ window.getProductStatusFromCache = function(productId) {
   return 'UNKNOWN';
 };
 
+// Global function to update all product card names (ensures no URLs are displayed)
+window.updateAllProductCardNames = function() {
+  const cachedStatuses = loadStatusesFromCache({ allowStale: true });
+  document.querySelectorAll('.cNexusProduct[data-product-id]').forEach((cardEl) => {
+    const productId = cardEl.getAttribute('data-product-id') || '';
+    if (!productId) return;
+    
+    const titleEl = cardEl.querySelector('.cNexusProduct_title');
+    if (!titleEl) return;
+    
+    // Get current name from DOM
+    const currentName = titleEl.textContent || '';
+    
+    // If current name looks like a URL, fix it
+    if (currentName && isUrl(currentName.trim())) {
+      // Try to get proper name from cache
+      const statusData = cachedStatuses && cachedStatuses[productId] ? normalizeProductData(cachedStatuses[productId]) : null;
+      let properName = productId; // Default to product ID
+      
+      if (statusData && typeof statusData.productName === 'string' && statusData.productName.trim()) {
+        const productName = statusData.productName.trim();
+        if (!isUrl(productName)) {
+          properName = productName;
+        }
+      }
+      
+      // Update the name in DOM
+      titleEl.textContent = properName;
+    }
+  });
+};
+
 // Global function to update all product card statuses (called after card rendering)
 window.updateAllProductCardStatuses = function() {
   const cachedStatuses = loadStatusesFromCache({ allowStale: true });
   document.querySelectorAll('.product-status-badge[data-product-id]').forEach((el) => {
     const productId = el.getAttribute('data-product-id') || '';
     if (!productId) return;
-    const statusData = cachedStatuses && cachedStatuses[productId] ? cachedStatuses[productId] : null;
+    const statusData = cachedStatuses && cachedStatuses[productId] ? normalizeProductData(cachedStatuses[productId]) : null;
     const statusText = statusData && statusData.status ? statusData.status : 'UNKNOWN';
     updateProductCardStatus(productId, statusText);
     if (statusData) {
@@ -1695,6 +1754,11 @@ window.updateAllProductCardStatuses = function() {
       }
     }
   });
+  
+  // Also update product names after status update
+  if (window.updateAllProductCardNames) {
+    window.updateAllProductCardNames();
+  }
 };
 
 // Cache key for localStorage
@@ -1936,10 +2000,18 @@ function buildCardsForHomeCard(homeCard, getCachedStatusFn) {
     return `product.html?id=${encoded}`;
   };
 
+  
   return ids
     .map(pid => {
-      const doc = productDocs && productDocs[pid] ? productDocs[pid] : null;
-      const name = (doc && typeof doc.productName === 'string' && doc.productName.trim()) ? doc.productName.trim() : pid;
+      const doc = productDocs && productDocs[pid] ? normalizeProductData(productDocs[pid]) : null;
+      let name = pid; // Default to product ID
+      if (doc && typeof doc.productName === 'string' && doc.productName.trim()) {
+        const productName = doc.productName.trim();
+        // Double-check: If productName looks like a URL, use product ID instead
+        if (!isUrl(productName)) {
+          name = productName;
+        }
+      }
       const mainData = doc && typeof doc.mainImageDataUrl === 'string' ? doc.mainImageDataUrl.trim() : '';
       const mainUrl = doc && typeof doc.mainImageUrl === 'string' ? doc.mainImageUrl.trim() : '';
       const image = mainData || mainUrl || '';
@@ -2060,10 +2132,33 @@ async function getDocsWithRetry(ref, opts = {}) {
   throw lastError;
 }
 
+// Normalize product data - clean productName if it's a URL
+function normalizeProductData(productData) {
+  if (!productData || typeof productData !== 'object') return productData;
+  const normalized = { ...productData };
+  // If productName is a URL, remove it (will fallback to product ID)
+  if (normalized.productName && typeof normalized.productName === 'string' && isUrl(normalized.productName.trim())) {
+    delete normalized.productName;
+  }
+  return normalized;
+}
+
+// Normalize all product statuses before saving to cache
+function normalizeStatusesForCache(statuses) {
+  if (!statuses || typeof statuses !== 'object') return statuses;
+  const normalized = {};
+  Object.keys(statuses).forEach(key => {
+    normalized[key] = normalizeProductData(statuses[key]);
+  });
+  return normalized;
+}
+
 // Save statuses to cache
 function saveStatusesToCache(statuses) {
   try {
-    localStorage.setItem(STATUS_CACHE_KEY, JSON.stringify(statuses));
+    // Normalize data before saving - remove URLs from productName
+    const normalized = normalizeStatusesForCache(statuses);
+    localStorage.setItem(STATUS_CACHE_KEY, JSON.stringify(normalized));
     localStorage.setItem(STATUS_CACHE_TIMESTAMP, Date.now().toString());
   } catch (e) {
     console.warn("Error saving cache:", e);
@@ -2078,7 +2173,8 @@ async function initializeProductCardStatuses() {
       console.log("📦 Loading statuses from cache...");
       // Update all product cards immediately with cached statuses
       Object.keys(cachedStatuses).forEach((productId) => {
-        const statusData = cachedStatuses[productId];
+        // Normalize cached data to ensure no URLs in productName
+        const statusData = normalizeProductData(cachedStatuses[productId]);
         if (statusData && statusData.status) {
           updateProductCardStatus(productId, statusData.status);
         }
@@ -2092,6 +2188,10 @@ async function initializeProductCardStatuses() {
       });
       if (window.updateAllProductCardStatuses) {
         window.updateAllProductCardStatuses();
+      }
+
+      if (window.updateAllProductCardNames) {
+        window.updateAllProductCardNames();
       }
     }
     
@@ -2113,11 +2213,13 @@ async function initializeProductCardStatuses() {
     if (snapshot) {
       const statuses = {};
       snapshot.forEach((doc) => {
-        statuses[doc.id] = doc.data();
+        // Normalize data before storing - remove URLs from productName
+        statuses[doc.id] = normalizeProductData(doc.data());
       });
       saveStatusesToCache(statuses);
       Object.keys(statuses).forEach((productId) => {
-        const statusData = statuses[productId];
+        // Data already normalized above, but ensure it's clean
+        const statusData = normalizeProductData(statuses[productId]);
         if (statusData && statusData.status) {
           updateProductCardStatus(productId, statusData.status);
         }
@@ -2132,6 +2234,10 @@ async function initializeProductCardStatuses() {
       if (window.updateAllProductCardStatuses) {
         window.updateAllProductCardStatuses();
       }
+
+      if (window.updateAllProductCardNames) {
+        window.updateAllProductCardNames();
+      }
     }
     
     // Set up real-time listener for future updates
@@ -2139,14 +2245,16 @@ async function initializeProductCardStatuses() {
       console.log("🔄 Real-time update received from Firebase (Product Cards)");
       const updatedStatuses = {};
       snapshot.forEach((doc) => {
-        updatedStatuses[doc.id] = doc.data();
+        // Normalize data before storing - remove URLs from productName
+        updatedStatuses[doc.id] = normalizeProductData(doc.data());
       });
       
-      // Save to cache
+      // Save to cache (will be normalized again in saveStatusesToCache, but it's safe)
       saveStatusesToCache(updatedStatuses);
       
       Object.keys(updatedStatuses).forEach((productId) => {
-        const statusData = updatedStatuses[productId];
+        // Data already normalized above, but ensure it's clean
+        const statusData = normalizeProductData(updatedStatuses[productId]);
         if (statusData && statusData.status) {
           updateProductCardStatus(productId, statusData.status);
         }
@@ -2165,21 +2273,25 @@ async function initializeProductCardStatuses() {
       console.error("Error in status subscription:", error);
     });
     
-    console.log("✅ Firebase Product Card Statuses initialized successfully!");
-    console.log("📡 Real-time updates enabled for product cards");
+
     
   } catch (error) {
-    console.error("❌ Error initializing product card statuses:", error);
-    // Fallback to cache if Firebase fails
+    console.error("Error initializing product card statuses:", error);
+   
     const cachedStatuses = loadStatusesFromCache();
     if (cachedStatuses) {
-      console.log("📦 Falling back to cached statuses");
+
       Object.keys(cachedStatuses).forEach((productId) => {
-        const statusData = cachedStatuses[productId];
+     
+        const statusData = normalizeProductData(cachedStatuses[productId]);
         if (statusData && statusData.status) {
           updateProductCardStatus(productId, statusData.status);
         }
       });
+      
+      if (window.updateAllProductCardNames) {
+        window.updateAllProductCardNames();
+      }
     }
   }
 }
