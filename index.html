@@ -1433,16 +1433,32 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
     
-
-    if (window.updateAllProductCardStatuses) {
-     
-      window.updateAllProductCardStatuses();
-    }
-    
-
-    if (window.updateAllProductCardNames) {
-      window.updateAllProductCardNames();
-    }
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      if (window.updateAllProductCardStatuses) {
+        window.updateAllProductCardStatuses();
+      }
+      
+      // Update names with retry mechanism
+      if (window.updateAllProductCardNames) {
+        // Immediate update
+        window.updateAllProductCardNames();
+        
+        // Retry after a short delay in case cards are still being added
+        setTimeout(() => {
+          window.updateAllProductCardNames();
+        }, 100);
+        
+        // Another retry after longer delay for slow connections
+        setTimeout(() => {
+          window.updateAllProductCardNames();
+        }, 500);
+      }
+      
+      if (window.updateAllProductCardPrices) {
+        window.updateAllProductCardPrices();
+      }
+    });
 
     if (window.updateAllProductCardPrices) {
       window.updateAllProductCardPrices();
@@ -1705,9 +1721,11 @@ window.getProductStatusFromCache = function(productId) {
   return 'UNKNOWN';
 };
 
-// Global function to update all product card names (ensures no URLs are displayed)
+
 window.updateAllProductCardNames = function() {
   const cachedStatuses = loadStatusesFromCache({ allowStale: true });
+  let updatedCount = 0;
+  
   document.querySelectorAll('.cNexusProduct[data-product-id]').forEach((cardEl) => {
     const productId = cardEl.getAttribute('data-product-id') || '';
     if (!productId) return;
@@ -1715,14 +1733,25 @@ window.updateAllProductCardNames = function() {
     const titleEl = cardEl.querySelector('.cNexusProduct_title');
     if (!titleEl) return;
     
-    // Get current name from DOM
+
     const currentName = titleEl.textContent || '';
+    const trimmedName = currentName.trim();
     
-    // If current name looks like a URL, fix it
-    if (currentName && isUrl(currentName.trim())) {
-      // Try to get proper name from cache
+
+    let needsUpdate = false;
+    let properName = productId; 
+    
+    if (trimmedName && isUrl(trimmedName)) {
+
+      needsUpdate = true;
+    } else if (!trimmedName || trimmedName === productId) {
+
+      needsUpdate = true;
+    }
+    
+    if (needsUpdate) {
+
       const statusData = cachedStatuses && cachedStatuses[productId] ? normalizeProductData(cachedStatuses[productId]) : null;
-      let properName = productId; // Default to product ID
       
       if (statusData && typeof statusData.productName === 'string' && statusData.productName.trim()) {
         const productName = statusData.productName.trim();
@@ -1731,10 +1760,15 @@ window.updateAllProductCardNames = function() {
         }
       }
       
-      // Update the name in DOM
-      titleEl.textContent = properName;
+      // Only update if we have a different name
+      if (properName !== trimmedName) {
+        titleEl.textContent = properName;
+        updatedCount++;
+      }
     }
   });
+  
+  return updatedCount;
 };
 
 // Global function to update all product card statuses (called after card rendering)
@@ -2240,20 +2274,20 @@ async function initializeProductCardStatuses() {
       }
     }
     
-    // Set up real-time listener for future updates
+
     onSnapshot(statusesRef, (snapshot) => {
       console.log("🔄 Real-time update received from Firebase (Product Cards)");
       const updatedStatuses = {};
       snapshot.forEach((doc) => {
-        // Normalize data before storing - remove URLs from productName
+
         updatedStatuses[doc.id] = normalizeProductData(doc.data());
       });
       
-      // Save to cache (will be normalized again in saveStatusesToCache, but it's safe)
+
       saveStatusesToCache(updatedStatuses);
       
       Object.keys(updatedStatuses).forEach((productId) => {
-        // Data already normalized above, but ensure it's clean
+
         const statusData = normalizeProductData(updatedStatuses[productId]);
         if (statusData && statusData.status) {
           updateProductCardStatus(productId, statusData.status);
@@ -2352,17 +2386,68 @@ async function initializeProductPrices() {
   }
 }
 
-// Wait for DOM to be fully loaded
+
+let productCardsObserver = null;
+function setupProductCardsObserver() {
+  if (productCardsObserver) return; 
+  
+  productCardsObserver = new MutationObserver((mutations) => {
+    let shouldUpdate = false;
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType === 1) { 
+
+          if (node.classList && node.classList.contains('cNexusProduct')) {
+            shouldUpdate = true;
+          } else if (node.querySelector && node.querySelector('.cNexusProduct')) {
+            shouldUpdate = true;
+          }
+        }
+      });
+    });
+    
+    if (shouldUpdate && window.updateAllProductCardNames) {
+  
+      setTimeout(() => {
+        window.updateAllProductCardNames();
+      }, 50);
+    }
+  });
+  
+
+  const categoryWrapper = document.getElementById('product-category-view');
+  const productGrid = document.getElementById('product-grid');
+  
+  if (categoryWrapper) {
+    productCardsObserver.observe(categoryWrapper, {
+      childList: true,
+      subtree: true
+    });
+  }
+  
+  if (productGrid) {
+    productCardsObserver.observe(productGrid, {
+      childList: true,
+      subtree: true
+    });
+  }
+}
+
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initializeHomeCardsConfig();
         initializeProductCardStatuses();
         initializeProductPrices();
+    
+        setTimeout(setupProductCardsObserver, 500);
     });
 } else {
     initializeHomeCardsConfig();
     initializeProductCardStatuses();
     initializeProductPrices();
+   
+    setTimeout(setupProductCardsObserver, 500);
 }
 </script>
 <script type="module" src="supported-cheats-footer.js"></script>
