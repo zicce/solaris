@@ -823,8 +823,23 @@
                         </div>
                         
                         <div class="form-group">
+                            <label class="form-label">Checkout</label>
+                            <select id="checkoutProvider" class="form-control" onchange="onCheckoutProviderChange()">
+                                <option value="sellhub">Sellhub embed</option>
+                                <option value="shopify">Shopify hosted checkout</option>
+                            </select>
+                        </div>
+
+                        <div id="sellhubIdGroup" class="form-group">
                             <label class="form-label">Sellhub Product ID</label>
                             <input type="text" id="sellhubId" class="form-control" placeholder="Enter Sellhub Product ID">
+                        </div>
+
+                        <div id="shopifyConfigGroup" style="display:none;">
+                            <div class="form-group" style="margin-top: 10px;">
+                                <label class="form-label">Shopify Variant IDs</label>
+                                <div id="shopifyVariantIdsList"></div>
+                            </div>
                         </div>
 
                         <div class="form-group">
@@ -1175,7 +1190,9 @@
                 productName: "AI Aimbot",
                 shortDescription: "AI-powered aim assistance with advanced machine learning algorithms for precision targeting.",
                 description: "",
+                checkoutProvider: "shopify",
                 sellhubId: "ff69e0aa-660c-4191-8235-63e508e3aa3a",
+                shopifyVariantIds: ["53044213809491", "53044213842259", "53044213875027"],
                 variants: [
                     { name: "1 Week", price: "€19.99" },
                     { name: "1 Month", price: "€39.99" },
@@ -1204,6 +1221,7 @@
                 productName: "Rust",
                 shortDescription: "",
                 description: "",
+                checkoutProvider: "sellhub",
                 sellhubId: "9c2beaad-b526-4723-a16d-354ed1f30a5f",
                 variants: [
                     { name: "Day", price: "€6.99" },
@@ -1233,6 +1251,7 @@
                 productName: "Permanent Spoofer",
                 shortDescription: "",
                 description: "",
+                checkoutProvider: "sellhub",
                 sellhubId: "494edb8b-3df5-4313-8f1c-3fd667cf46d2",
                 variants: [
                     { name: "One-Time (24h)", price: "€19.99" },
@@ -1258,6 +1277,7 @@
                 productName: "Temporary Spoofer",
                 shortDescription: "",
                 description: "",
+                checkoutProvider: "sellhub",
                 sellhubId: "8b8d5707-ebc3-49c4-a694-e24936544964",
                 variants: [
                     { name: "Day", price: "€4.99" },
@@ -1285,6 +1305,7 @@
                 productName: "Fortnite Private",
                 shortDescription: "",
                 description: "",
+                checkoutProvider: "sellhub",
                 sellhubId: "6e1a7433-af71-4f57-aab5-513c90052a62",
                 variants: [
                     { name: "Day", price: "€9.99" },
@@ -1315,6 +1336,7 @@
                 productName: "Fortnite Internal",
                 shortDescription: "",
                 description: "",
+                checkoutProvider: "sellhub",
                 sellhubId: "4ab503c0-5e60-4ba8-aab4-8cb17adca8b1",
                 variants: [
                     { name: "3 Days", price: "€11.99" },
@@ -1345,6 +1367,7 @@
                 productName: "Black Ops 6",
                 shortDescription: "",
                 description: "",
+                checkoutProvider: "sellhub",
                 sellhubId: "1758a4ca-8312-4c95-8197-85b41dae65af",
                 variants: [
                     { name: "Day", price: "€4.99" },
@@ -1378,6 +1401,7 @@
         let currentProducts = [];
         let filteredProducts = [];
         let currentEditingProduct = null;
+        let currentEditingShopifyVariantIds = [];
 
         function normalizeFeatures(features) {
             if (!Array.isArray(features)) return [];
@@ -1419,6 +1443,8 @@
                 if (!existing || existing.shortDescription === undefined) patch.shortDescription = defaults.shortDescription;
                 if (!existing || existing.description === undefined) patch.description = defaults.description;
                 if (!existing || existing.sellhubId === undefined) patch.sellhubId = defaults.sellhubId;
+                if (!existing || existing.checkoutProvider === undefined) patch.checkoutProvider = defaults.checkoutProvider || 'sellhub';
+                if (!existing || existing.shopifyVariantIds === undefined) patch.shopifyVariantIds = defaults.shopifyVariantIds || [];
                 if (!existing || existing.variants === undefined) patch.variants = defaults.variants;
                 if (!existing || existing.features === undefined) patch.features = defaults.features;
                 if (!existing || existing.mainBadges === undefined) patch.mainBadges = defaults.mainBadges;
@@ -1586,6 +1612,7 @@
                             <tr>
                                 <th>Product Name</th>
                                 <th>Status</th>
+                                <th>Checkout</th>
                                 <th>Sellhub ID</th>
                                 <th>Variants</th>
                                 <th>Last Updated</th>
@@ -1604,7 +1631,8 @@
                                             ${product.status}
                                         </span>
                                     </td>
-                                    <td><code style="font-size: 12px;">${product.sellhubId || 'N/A'}</code></td>
+                                    <td>${(product.checkoutProvider === 'shopify') ? 'Shopify' : 'Sellhub'}</td>
+                                    <td><code style="font-size: 12px;">${(product.checkoutProvider === 'shopify') ? '—' : (product.sellhubId || 'N/A')}</code></td>
                                     <td>${product.variants ? product.variants.length : 0}</td>
                                     <td>${product.lastUpdated ? new Date(product.lastUpdated).toLocaleDateString() : 'Never'}</td>
                     <td>
@@ -1653,6 +1681,11 @@
             document.getElementById('productName').value = product.productName || product.name || '';
             document.getElementById('productStatus').value = product.status || 'UNKNOWN';
             document.getElementById('sellhubId').value = product.sellhubId || '';
+            const provider = normalizeCheckoutProvider(product.checkoutProvider);
+            const providerEl = document.getElementById('checkoutProvider');
+            if (providerEl) providerEl.value = provider;
+            const initialVariants = Array.isArray(product.variants) ? product.variants : [];
+            currentEditingShopifyVariantIds = normalizeShopifyVariantIdsList(product.shopifyVariantIds, initialVariants);
             document.getElementById('shortDescription').value = product.shortDescription || '';
             document.getElementById('videoShowcaseUrl').value = product.videoShowcaseUrl || '';
             updateVideoShowcasePreviewFromUrl(product.videoShowcaseUrl || '');
@@ -1688,6 +1721,7 @@
             if (galleryFile3) galleryFile3.value = '';
             
             renderVariants(product.variants || []);
+            onCheckoutProviderChange();
             renderFeatures(product.features || []);
             renderBadges(product.mainBadges || [], product.techBadges || []);
             
@@ -1740,6 +1774,15 @@
             preview.className = target.value || '';
         });
 
+        document.addEventListener('change', (e) => {
+            const target = e.target;
+            if (!target) return;
+            const field = target.getAttribute('data-field') || '';
+            if (field !== 'name' && field !== 'price') return;
+            if (!target.closest || !target.closest('#variantsList')) return;
+            renderShopifyVariantIdsList();
+        });
+
         function renderVariants(variants) {
             const container = document.getElementById('variantsList');
             container.innerHTML = variants.map((variant, index) => `
@@ -1751,6 +1794,7 @@
                     </button>
                 </div>
             `).join('');
+            renderShopifyVariantIdsList();
         }
 
         function renderFeatures(features) {
@@ -1953,6 +1997,115 @@
             const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             return uuidRegex.test(sellhubId) || sellhubId === '';
         }
+
+        function normalizeCheckoutProvider(value) {
+            return value === 'shopify' ? 'shopify' : 'sellhub';
+        }
+
+        function normalizeShopifyVariantIdsList(input, variants) {
+            const len = Array.isArray(variants) ? variants.length : 0;
+            const empty = Array.from({ length: len }, () => '');
+            if (!len) return [];
+
+            if (Array.isArray(input)) {
+                const list = input.map(v => (typeof v === 'string' ? v.trim() : String(v || '').trim()));
+                return Array.from({ length: len }, (_, i) => list[i] || '');
+            }
+
+            if (input && typeof input === 'object') {
+                const obj = input;
+                const week = typeof obj.week === 'string' ? obj.week.trim() : '';
+                const month = typeof obj.month === 'string' ? obj.month.trim() : '';
+                const lifetime = typeof obj.lifetime === 'string' ? obj.lifetime.trim() : '';
+                const out = [...empty];
+
+                (variants || []).forEach((variant, idx) => {
+                    const name = (variant && variant.name ? String(variant.name) : '').toLowerCase();
+                    if (!name) return;
+                    if (name.includes('life') && lifetime) out[idx] = lifetime;
+                    else if (name.includes('month') && month) out[idx] = month;
+                    else if (name.includes('week') && week) out[idx] = week;
+                });
+
+                return out;
+            }
+
+            return empty;
+        }
+
+        function getShopifyVariantIdsFromForm() {
+            const ids = [];
+            document.querySelectorAll('#shopifyVariantIdsList [data-role="shopify-variant-id"]').forEach((el) => {
+                ids.push(String(el.value || '').trim());
+            });
+            return ids;
+        }
+
+        function validateShopifyVariantIdsList(ids, variants) {
+            const len = Array.isArray(variants) ? variants.length : 0;
+            if (!len) return false;
+            if (!Array.isArray(ids) || ids.length !== len) return false;
+            return ids.every(v => /^[0-9]+$/.test(String(v || '').trim()));
+        }
+
+        function renderShopifyVariantIdsList() {
+            const provider = normalizeCheckoutProvider(document.getElementById('checkoutProvider')?.value || 'sellhub');
+            const container = document.getElementById('shopifyVariantIdsList');
+            if (!container) return;
+            if (provider !== 'shopify') {
+                container.innerHTML = '';
+                return;
+            }
+
+            const variants = getCurrentVariants();
+            const existingFromForm = getShopifyVariantIdsFromForm();
+            const seed = existingFromForm.length ? existingFromForm : currentEditingShopifyVariantIds;
+            const ids = normalizeShopifyVariantIdsList(seed, variants);
+
+            if (!variants.length) {
+                container.innerHTML = '<div style="color:rgba(255,255,255,0.7);font-size:0.9rem;">No variants defined yet.</div>';
+                return;
+            }
+
+            const rows = variants.map((v, idx) => {
+                const name = (v && v.name ? String(v.name) : '').trim();
+                const price = (v && v.price ? String(v.price) : '').trim();
+                const id = ids[idx] || '';
+                return `
+                    <tr>
+                        <td style="padding:6px 8px;border-top:1px solid rgba(255,255,255,0.08);">${name ? escapeHtml(name) : '<span style="color:rgba(255,255,255,0.5);">—</span>'}</td>
+                        <td style="padding:6px 8px;border-top:1px solid rgba(255,255,255,0.08);white-space:nowrap;">${price ? escapeHtml(price) : '<span style="color:rgba(255,255,255,0.5);">—</span>'}</td>
+                        <td style="padding:6px 8px;border-top:1px solid rgba(255,255,255,0.08);">
+                            <input type="text" class="form-control" data-role="shopify-variant-id" data-index="${idx}" value="${escapeHtml(id)}" placeholder="Shopify variant id">
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <div style="overflow:auto;border:1px solid rgba(255,255,255,0.12);border-radius:12px;background:rgba(255,255,255,0.04);">
+                    <table style="width:100%;border-collapse:collapse;font-size:0.92rem;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;padding:8px;color:rgba(255,255,255,0.75);font-weight:600;">Variant</th>
+                                <th style="text-align:left;padding:8px;color:rgba(255,255,255,0.75);font-weight:600;">Price</th>
+                                <th style="text-align:left;padding:8px;color:rgba(255,255,255,0.75);font-weight:600;">Shopify Variant ID</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        window.onCheckoutProviderChange = function() {
+            const provider = normalizeCheckoutProvider(document.getElementById('checkoutProvider')?.value || 'sellhub');
+            const sellhubGroup = document.getElementById('sellhubIdGroup');
+            const shopifyGroup = document.getElementById('shopifyConfigGroup');
+            if (sellhubGroup) sellhubGroup.style.display = provider === 'sellhub' ? '' : 'none';
+            if (shopifyGroup) shopifyGroup.style.display = provider === 'shopify' ? '' : 'none';
+            renderShopifyVariantIdsList();
+        };
 
         function validateProductName(productName) {
             return typeof productName === 'string' && productName.trim().length > 0 && productName.trim().length <= 80;
@@ -2217,12 +2370,14 @@
             }
             
             const sellhubId = document.getElementById('sellhubId').value;
+            const checkoutProvider = normalizeCheckoutProvider(document.getElementById('checkoutProvider')?.value || 'sellhub');
             const productName = document.getElementById('productName').value;
             const shortDescription = document.getElementById('shortDescription').value;
             const videoShowcaseUrlInput = document.getElementById('videoShowcaseUrl')?.value || '';
             const metaTitleInput = document.getElementById('metaTitle')?.value || '';
             const metaDescriptionInput = document.getElementById('metaDescription')?.value || '';
             const variants = getCurrentVariants();
+            const shopifyVariantIds = normalizeShopifyVariantIdsList(getShopifyVariantIdsFromForm(), variants);
             const features = getCurrentFeatures();
             const mainBadges = getCurrentMainBadges();
             const techBadges = getCurrentTechBadges();
@@ -2256,9 +2411,16 @@
             }
             
             // Validation
-            if (!validateSellhubId(sellhubId)) {
-                showNotification('Invalid Sellhub ID format. Must be a valid UUID.', 'error');
-                return;
+            if (checkoutProvider === 'sellhub') {
+                if (!validateSellhubId(sellhubId)) {
+                    showNotification('Invalid Sellhub ID format. Must be a valid UUID.', 'error');
+                    return;
+                }
+            } else {
+                if (!validateShopifyVariantIdsList(shopifyVariantIds, variants)) {
+                    showNotification('Shopify Variant IDs are required for each variant (numbers only)', 'error');
+                    return;
+                }
             }
             
             if (variants.length === 0) {
@@ -2286,6 +2448,8 @@
                 shortDescription: shortDescription.trim(),
                 status: document.getElementById('productStatus').value,
                 sellhubId: sellhubId,
+                checkoutProvider: checkoutProvider,
+                shopifyVariantIds: shopifyVariantIds,
                 videoShowcaseUrl: videoShowcaseUrlInput.trim(),
                 metaTitle: metaTitleInput.trim(),
                 metaDescription: metaDescriptionInput.trim(),
@@ -2514,6 +2678,8 @@
                         productName: name,
                         status: 'UNKNOWN',
                         sellhubId: '',
+                        checkoutProvider: 'sellhub',
+                        shopifyVariantIds: [],
                         shortDescription: '',
                         description: '',
                         variants: [{ name: '1 Week', price: '€0.00' }],
@@ -2869,6 +3035,8 @@
                         shortDescription: docData.shortDescription !== undefined ? docData.shortDescription : (defaults.shortDescription || ''),
                         status: docData.status || 'UNKNOWN',
                         sellhubId: docData.sellhubId !== undefined ? docData.sellhubId : (defaults.sellhubId || base.sellhubId || ''),
+                        checkoutProvider: docData.checkoutProvider !== undefined ? docData.checkoutProvider : (defaults.checkoutProvider || 'sellhub'),
+                        shopifyVariantIds: docData.shopifyVariantIds !== undefined ? docData.shopifyVariantIds : (defaults.shopifyVariantIds || []),
                         mainImageUrl: typeof docData.mainImageUrl === 'string' ? docData.mainImageUrl : getDefaultMainImageUrl(productId),
                         mainImageDataUrl: typeof docData.mainImageDataUrl === 'string' ? docData.mainImageDataUrl : '',
                         galleryImageUrls: Array.isArray(docData.galleryImageUrls) ? docData.galleryImageUrls : [],
@@ -2915,6 +3083,8 @@
                             shortDescription: incoming.shortDescription !== undefined ? incoming.shortDescription : (defaults.shortDescription || ''),
                             status: incoming.status || 'UNKNOWN',
                             sellhubId: incoming.sellhubId !== undefined ? incoming.sellhubId : (defaults.sellhubId || base.sellhubId || ''),
+                            checkoutProvider: incoming.checkoutProvider !== undefined ? incoming.checkoutProvider : (defaults.checkoutProvider || 'sellhub'),
+                            shopifyVariantIds: incoming.shopifyVariantIds !== undefined ? incoming.shopifyVariantIds : (defaults.shopifyVariantIds || []),
                             variants: incoming.variants !== undefined ? incoming.variants : (defaults.variants || []),
                             features: normalizeFeatures(incoming.features !== undefined ? incoming.features : (defaults.features || [])),
                             mainBadges: normalizeBadges(incoming.mainBadges !== undefined ? incoming.mainBadges : (defaults.mainBadges || [])),
